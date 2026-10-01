@@ -42,7 +42,7 @@ function Avatar({ row, size }: { row: ChatRowModel; size: "md" | "sm" }) {
       aria-hidden="true"
       className={cn(
         "relative grid shrink-0 place-items-center rounded-full font-semibold text-white",
-        size === "md" ? "size-8 text-[13px]" : "size-5 text-[10px]",
+        size === "md" ? "size-9 text-sm" : "size-5 text-[10px]",
       )}
       style={{ background: avatarBackground(color) }}
     >
@@ -50,9 +50,9 @@ function Avatar({ row, size }: { row: ChatRowModel; size: "md" | "sm" }) {
       {busy ? (
         <span
           data-lane={row.lane ?? undefined}
-          className="absolute -bottom-0.5 -right-0.5 grid size-3 place-items-center rounded-full bg-sidebar"
+          className="absolute -bottom-0.5 -right-0.5 grid size-3.5 place-items-center rounded-full bg-sidebar"
         >
-          <span className="chat-lane-dot chat-pulse size-[7px] rounded-full" />
+          <span className="chat-lane-dot chat-pulse size-2 rounded-full" />
         </span>
       ) : null}
     </span>
@@ -226,7 +226,7 @@ export function ChatRow({
         <div
           className={cn(
             "flex items-center gap-2 rounded-lg bg-sidebar-accent px-2",
-            compact ? "h-8" : "h-12",
+            compact ? "h-8" : "h-14",
           )}
         >
           <Avatar row={row} size={compact ? "sm" : "md"} />
@@ -249,8 +249,8 @@ export function ChatRow({
               setRenaming(true);
             }}
             className={cn(
-              "group flex select-none items-center rounded-lg text-[13px] text-sidebar-foreground no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-              compact ? "h-8 gap-2 px-2" : "gap-2.5 px-2 py-1.5",
+              "group flex select-none items-center rounded-lg text-sidebar-foreground no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+              compact ? "h-8 gap-2 px-2 text-[13px]" : "gap-3 px-2 py-2 text-[13.5px]",
               active ? "bg-sidebar-accent text-foreground" : "hover:bg-sidebar-accent/60",
             )}
           >
@@ -276,7 +276,7 @@ export function ChatRow({
                   ) : null}
                   <TimeOrShortcut row={row} now={now} />
                 </span>
-                <span className="mt-0.5 flex h-4 items-center gap-1.5 text-[11px]">
+                <span className="mt-1 flex h-4 items-center gap-1.5 text-[11.5px]">
                   <StatusBadge row={row} active={active} />
                   <WhereLine row={row} provider={provider} showProject={showProject} showHost={showHost} />
                   {row.unread ? <UnreadDot /> : null}
