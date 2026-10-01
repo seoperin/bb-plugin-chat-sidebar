@@ -34,6 +34,12 @@ export const SETTINGS = {
     options: [...DENSITY_OPTIONS] as string[],
     default: "Comfortable",
   },
+  stickyHeadings: {
+    type: "boolean",
+    label: "Keep project headings in view",
+    description: "With list headers, the current project's heading stays under the tabs while you scroll.",
+    default: true,
+  },
   sectionFolders: {
     type: "boolean",
     label: "Section tabs",
@@ -68,6 +74,7 @@ export interface ChatSettings {
   language: Language;
   projects: ProjectGrouping;
   density: Density;
+  stickyHeadings: boolean;
   sectionFolders: boolean;
   archiveFolder: boolean;
   foldChildren: boolean;
@@ -94,6 +101,7 @@ export function parseSettings(values: Readonly<Record<string, unknown>> | undefi
       "tabs",
     ),
     density: pick<Density>(source.density, { Comfortable: "comfortable", Compact: "compact" }, "comfortable"),
+    stickyHeadings: bool(source.stickyHeadings, SETTINGS.stickyHeadings.default),
     sectionFolders: bool(source.sectionFolders, SETTINGS.sectionFolders.default),
     archiveFolder: bool(source.archiveFolder, SETTINGS.archiveFolder.default),
     foldChildren: bool(source.foldChildren, SETTINGS.foldChildren.default),

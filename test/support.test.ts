@@ -68,6 +68,7 @@ describe("parseSettings", () => {
       language: "auto",
       projects: "tabs",
       density: "comfortable",
+      stickyHeadings: true,
       sectionFolders: true,
       archiveFolder: true,
       foldChildren: true,

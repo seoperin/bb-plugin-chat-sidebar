@@ -2,7 +2,7 @@
 // The strip scrolls sideways (a mouse wheel scrolls it too) and keeps the
 // active tab in view. Right-click a tab to read everything in it or, for a
 // project, start a new chat there.
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { experimental_useSidebarThreadActions } from "@get-bb/plugin-sdk/app";
 
@@ -78,6 +78,26 @@ export function FolderTabs({
     return () => strip.removeEventListener("wheel", onWheel);
   }, []);
 
+  // Fade an edge only while there is more to scroll that way.
+  const [overflow, setOverflow] = useState({ start: false, end: false });
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (strip === null) return;
+    const update = () => {
+      const start = strip.scrollLeft > 1;
+      const end = strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1;
+      setOverflow((current) => (current.start === start && current.end === end ? current : { start, end }));
+    };
+    update();
+    strip.addEventListener("scroll", update, { passive: true });
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    observer?.observe(strip);
+    return () => {
+      strip.removeEventListener("scroll", update);
+      observer?.disconnect();
+    };
+  }, [folders.length]);
+
   useEffect(() => {
     const tab = stripRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
     tab?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
@@ -87,6 +107,8 @@ export function FolderTabs({
     <nav
       ref={stripRef}
       aria-label={t("folder.tabs")}
+      data-fade-start={overflow.start || undefined}
+      data-fade-end={overflow.end || undefined}
       className="chat-tab-strip flex gap-1 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {folders.map((folder) => {

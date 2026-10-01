@@ -4,7 +4,7 @@
 // owns the scrolling list only. Opening a chat routes through bb's own
 // `actions.open`, so splits, pane focus, and the mobile drawer behave as in
 // bb's list.
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import {
   experimental_useProviders,
@@ -92,10 +92,13 @@ export function ChatList(props: PluginThreadListProps) {
 function GroupHeader({
   group,
   collapsed,
+  sticky,
   onToggle,
 }: {
   group: ProjectGroup;
   collapsed: boolean;
+  /** Stays under the search and tabs while its group scrolls past. */
+  sticky: boolean;
   onToggle: () => void;
 }) {
   const { t } = useChat().i18n;
@@ -119,7 +122,10 @@ function GroupHeader({
       aria-expanded={!collapsed}
       aria-label={t(collapsed ? "folder.expand" : "folder.collapse", { name })}
       onClick={onToggle}
-      className="flex h-7 w-full cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      className={cn(
+        "flex h-7 w-full cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+        sticky && "sticky top-[var(--chat-top,0px)] z-[5] bg-sidebar",
+      )}
     >
       <Icon name={collapsed ? "ChevronRight" : "ChevronDown"} className="size-3 shrink-0" />
       <span className="min-w-0 truncate">{name}</span>
@@ -162,6 +168,20 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
     () => new Set(readStored<string[]>(COLLAPSED_KEY, (raw) => JSON.parse(raw) as string[], [])),
   );
   const listRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  // Sticky project headings sit right under the search and tabs, whose
+  // height changes with the font size and when the tab strip appears.
+  const [topHeight, setTopHeight] = useState(0);
+  useLayoutEffect(() => {
+    const top = topRef.current;
+    if (top === null) return;
+    const measure = () => setTopHeight(top.getBoundingClientRect().height);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(top);
+    return () => observer.disconnect();
+  }, []);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const setFolder = (next: FolderId) => {
@@ -328,11 +348,14 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   return (
     <div
       className={cn(
-        "chat-sidebar flex min-h-full flex-col",
+        // bb's scroll area is a flex column: without shrink-0 the list is
+        // squeezed to one screen and the sticky search scrolls away with it.
+        "chat-sidebar flex min-h-full shrink-0 flex-col",
         reorder.state.dragging !== null && "cursor-grabbing select-none",
       )}
+      style={{ "--chat-top": `${topHeight}px` } as CSSProperties}
     >
-      <div className="sticky top-0 z-10 bg-sidebar pt-1">
+      <div ref={topRef} className="sticky top-0 z-10 bg-sidebar pt-1">
         <div className="relative px-2 pb-2">
           <Icon
             name="Search"
@@ -387,6 +410,7 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
               <GroupHeader
                 group={group}
                 collapsed={collapsed.has(group.key)}
+                sticky={settings.stickyHeadings}
                 onToggle={() => toggleGroup(group.key)}
               />
               {collapsed.has(group.key) ? null : <ul className="space-y-px">{group.rows.map(renderRow)}</ul>}

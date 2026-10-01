@@ -34,6 +34,7 @@ bb plugin config chat-sidebar unset language           # back to Auto
 | `language` | `Auto`, `English`, `Русский` | `Auto` (browser language, else English) |
 | `projects` | `Folder tabs`, `List headers`, `Off` | `Folder tabs` |
 | `density` | `Comfortable`, `Compact` | `Comfortable` |
+| `stickyHeadings` | boolean: with `List headers`, the current heading stays under the tabs | `true` |
 | `sectionFolders` | boolean: a tab per bb section | `true` |
 | `archiveFolder` | boolean: the Archive tab | `true` |
 | `foldChildren` | boolean: sub-agents and forks share the parent's row | `true` |

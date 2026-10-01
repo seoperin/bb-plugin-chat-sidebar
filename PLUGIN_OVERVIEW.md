@@ -11,7 +11,7 @@ Chat Sidebar replaces bb's sidebar thread list with a chat list. bb's own sideba
 
 ## Settings
 
-- **Projects:** folder tabs, headings in the list, or off.
+- **Projects:** folder tabs, headings in the list (they can stay pinned under the tabs while you scroll), or off.
 - **Row size:** comfortable (avatar plus a status line) or compact (one line).
 - **Section tabs** and the **Archive tab**: on or off.
 - **Fold sub-agents** into their parent: on or off.

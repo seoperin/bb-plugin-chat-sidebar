@@ -104,7 +104,13 @@
   }
 }
 
-/* The tab strip fades at the right edge, so it reads as scrollable. */
-.chat-tab-strip {
+/* The tab strip fades an edge while there is more to scroll that way. */
+.chat-tab-strip[data-fade-end] {
   mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+}
+.chat-tab-strip[data-fade-start] {
+  mask-image: linear-gradient(to left, #000 calc(100% - 1.5rem), transparent);
+}
+.chat-tab-strip[data-fade-start][data-fade-end] {
+  mask-image: linear-gradient(to right, transparent, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
 }
