@@ -34,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ChatProvider, useChat } from "./chat-context";
 import { ChatRow, type ProviderSummary, type RowDrag } from "./chat-row";
+import { FolderRail } from "./folder-rail";
 import { FolderTabs } from "./folder-tabs";
 import { ProjectColorSubmenu, ProjectColorsProvider } from "./project-colors";
 import { usePinReorder } from "./use-pin-reorder";
@@ -308,6 +309,20 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
     return () => observer.disconnect();
   }, [visible.length, shown.length]);
   // "Back to top" shows once the list is scrolled about a screen down.
+  // The rail fills the visible height of bb's scroll area and scrolls inside it.
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const rail = settings.folderLayout === "rail";
+  useLayoutEffect(() => {
+    const scroller = scrollParentOf(topSentinelRef.current);
+    if (scroller === null || !rail) return;
+    const measure = () => setViewportHeight(scroller.clientHeight);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, [rail]);
+
   const [farFromTop, setFarFromTop] = useState(false);
   useEffect(() => {
     const scroller = scrollParentOf(topSentinelRef.current);
@@ -412,104 +427,117 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
         className={cn(
           // bb's scroll area is a flex column: without shrink-0 the list is
           // squeezed to one screen and the sticky search scrolls away with it.
-          "chat-sidebar flex min-h-full shrink-0 flex-col",
+          "chat-sidebar flex min-h-full shrink-0",
           reorder.state.dragging !== null && "cursor-grabbing select-none",
         )}
         style={{ "--chat-top": `${topHeight}px` } as CSSProperties}
       >
-        <div ref={topSentinelRef} className="-mb-px h-px" aria-hidden="true" />
-        <div ref={topRef} className="sticky top-0 z-10 bg-sidebar pt-1">
-          <div className="relative px-2 pb-2">
-            <Icon
-              name="Search"
-              className="pointer-events-none absolute left-4 top-[7px] size-3.5 text-muted-foreground"
-            />
-            <Input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  if (query !== "") event.stopPropagation();
-                  setQuery("");
-                }
-                if (event.key === "Enter" && shown[0] !== undefined) open(shown[0].thread.id, false);
-                if (event.key === "ArrowDown") {
-                  event.preventDefault();
-                  focusRow(listRef.current, null, "first");
-                }
-              }}
-              placeholder={t("search.placeholder")}
-              aria-label={t("search.label")}
-              className="h-7 rounded-full border-transparent bg-sidebar-accent/70 pl-7 pr-7 text-xs shadow-none [&::-webkit-search-cancel-button]:hidden"
-            />
-            {query !== "" ? (
+        {rail ? (
+          <FolderRail
+            folders={folders}
+            rows={rows}
+            active={activeFolder}
+            height={viewportHeight}
+            onSelect={setFolder}
+          />
+        ) : null}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div ref={topSentinelRef} className="-mb-px h-px" aria-hidden="true" />
+          <div ref={topRef} className="sticky top-0 z-10 bg-sidebar pt-1">
+            <div className="relative px-2 pb-2">
+              <Icon
+                name="Search"
+                className="pointer-events-none absolute left-4 top-[7px] size-3.5 text-muted-foreground"
+              />
+              <Input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    if (query !== "") event.stopPropagation();
+                    setQuery("");
+                  }
+                  if (event.key === "Enter" && shown[0] !== undefined) open(shown[0].thread.id, false);
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    focusRow(listRef.current, null, "first");
+                  }
+                }}
+                placeholder={t("search.placeholder")}
+                aria-label={t("search.label")}
+                className="h-7 rounded-full border-transparent bg-sidebar-accent/70 pl-7 pr-7 text-xs shadow-none [&::-webkit-search-cancel-button]:hidden"
+              />
+              {query !== "" ? (
+                <button
+                  type="button"
+                  aria-label={t("search.clear")}
+                  onClick={() => setQuery("")}
+                  className="absolute right-3.5 top-[5px] grid size-[18px] cursor-pointer place-items-center rounded-full text-muted-foreground hover:text-foreground"
+                >
+                  <Icon name="X" className="size-3" />
+                </button>
+              ) : null}
+            </div>
+            {rail ? null : (
+              <FolderTabs folders={folders} rows={rows} active={activeFolder} onSelect={setFolder} />
+            )}
+          </div>
+
+          <div ref={listRef} aria-label={t("list.label")} role="region" onKeyDown={onListKeyDown} className="px-1.5 pb-2">
+            {status === "loading" ? (
+              <p className="px-3 py-6 text-center text-xs text-muted-foreground">{t("list.loading")}</p>
+            ) : status === "error" && rows.length === 0 ? (
+              <p className="px-3 py-6 text-center text-xs text-muted-foreground">{t("list.error")}</p>
+            ) : shown.length === 0 ? (
+              <>
+                <p className="px-3 py-6 text-center text-xs text-muted-foreground">{emptyText}</p>
+                {quietButton}
+              </>
+            ) : grouped ? (
+              groupByProject(visible, projects as readonly PluginSidebarProject[]).map((group) => (
+                <section key={group.key} className="mb-1">
+                  <GroupHeader
+                    group={group}
+                    collapsed={collapsed.has(group.key)}
+                    sticky={settings.stickyHeadings}
+                    onToggle={() => toggleGroup(group.key)}
+                  />
+                  {collapsed.has(group.key) ? null : <ul className="space-y-px">{group.rows.map(renderRow)}</ul>}
+                </section>
+              ))
+            ) : (
+              <ul className="space-y-px">{visible.map(renderRow)}</ul>
+            )}
+            {visible.length < shown.length ? <div ref={sentinelRef} className="h-8" aria-hidden="true" /> : null}
+            {shown.length > 0 ? quietButton : null}
+            {archiveMode && archivePages?.hasNextPage ? (
               <button
                 type="button"
-                aria-label={t("search.clear")}
-                onClick={() => setQuery("")}
-                className="absolute right-3.5 top-[5px] grid size-[18px] cursor-pointer place-items-center rounded-full text-muted-foreground hover:text-foreground"
+                disabled={archivePages.isFetchingNextPage}
+                onClick={() => void archivePages.fetchNextPage()}
+                className="mx-auto mt-1 block cursor-pointer rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground disabled:opacity-50"
               >
-                <Icon name="X" className="size-3" />
+                {archivePages.isFetchingNextPage ? t("list.loadingMore") : t("list.loadMore")}
               </button>
             ) : null}
           </div>
-          <FolderTabs folders={folders} rows={rows} active={activeFolder} onSelect={setFolder} />
-        </div>
 
-        <div ref={listRef} aria-label={t("list.label")} role="region" onKeyDown={onListKeyDown} className="px-1.5 pb-2">
-          {status === "loading" ? (
-            <p className="px-3 py-6 text-center text-xs text-muted-foreground">{t("list.loading")}</p>
-          ) : status === "error" && rows.length === 0 ? (
-            <p className="px-3 py-6 text-center text-xs text-muted-foreground">{t("list.error")}</p>
-          ) : shown.length === 0 ? (
-            <>
-              <p className="px-3 py-6 text-center text-xs text-muted-foreground">{emptyText}</p>
-              {quietButton}
-            </>
-          ) : grouped ? (
-            groupByProject(visible, projects as readonly PluginSidebarProject[]).map((group) => (
-              <section key={group.key} className="mb-1">
-                <GroupHeader
-                  group={group}
-                  collapsed={collapsed.has(group.key)}
-                  sticky={settings.stickyHeadings}
-                  onToggle={() => toggleGroup(group.key)}
-                />
-                {collapsed.has(group.key) ? null : <ul className="space-y-px">{group.rows.map(renderRow)}</ul>}
-              </section>
-            ))
-          ) : (
-            <ul className="space-y-px">{visible.map(renderRow)}</ul>
-          )}
-          {visible.length < shown.length ? <div ref={sentinelRef} className="h-8" aria-hidden="true" /> : null}
-          {shown.length > 0 ? quietButton : null}
-          {archiveMode && archivePages?.hasNextPage ? (
+          {/* Sticks to the bottom of bb's scroll area; zero height, so it adds no space. */}
+          <div className="pointer-events-none sticky bottom-0 z-10 h-0">
             <button
               type="button"
-              disabled={archivePages.isFetchingNextPage}
-              onClick={() => void archivePages.fetchNextPage()}
-              className="mx-auto mt-1 block cursor-pointer rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground disabled:opacity-50"
+              aria-label={t("list.toTop")}
+              title={t("list.toTop")}
+              tabIndex={farFromTop ? 0 : -1}
+              aria-hidden={!farFromTop}
+              onClick={scrollToTop}
+              data-visible={farFromTop && reorder.state.dragging === null ? "" : undefined}
+              className="chat-to-top absolute bottom-3 right-3 grid size-8 cursor-pointer place-items-center rounded-full border border-sidebar-border bg-sidebar text-muted-foreground shadow-md outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {archivePages.isFetchingNextPage ? t("list.loadingMore") : t("list.loadMore")}
+              <Icon name="ArrowUp" className="size-4" />
             </button>
-          ) : null}
-        </div>
-
-        {/* Sticks to the bottom of bb's scroll area; zero height, so it adds no space. */}
-        <div className="pointer-events-none sticky bottom-0 z-10 h-0">
-          <button
-            type="button"
-            aria-label={t("list.toTop")}
-            title={t("list.toTop")}
-            tabIndex={farFromTop ? 0 : -1}
-            aria-hidden={!farFromTop}
-            onClick={scrollToTop}
-            data-visible={farFromTop && reorder.state.dragging === null ? "" : undefined}
-            className="chat-to-top absolute bottom-3 right-3 grid size-8 cursor-pointer place-items-center rounded-full border border-sidebar-border bg-sidebar text-muted-foreground shadow-md outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Icon name="ArrowUp" className="size-4" />
-          </button>
+          </div>
         </div>
       </div>
     </ProjectColorsProvider>

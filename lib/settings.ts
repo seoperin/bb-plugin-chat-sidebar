@@ -8,7 +8,8 @@
 // them to stable ids and fall back to the default for anything unknown.
 
 export const LANGUAGE_OPTIONS = ["Auto", "English", "Русский"] as const;
-export const PROJECT_OPTIONS = ["Folder tabs", "List headers", "Off"] as const;
+export const PROJECT_OPTIONS = ["Folders", "List headers", "Off"] as const;
+export const FOLDER_LAYOUT_OPTIONS = ["Tabs above the list", "Rail on the left"] as const;
 export const DENSITY_OPTIONS = ["Comfortable", "Compact"] as const;
 
 export const SETTINGS = {
@@ -23,9 +24,16 @@ export const SETTINGS = {
     type: "select",
     label: "Projects",
     description:
-      "Folder tabs: one tab per project. List headers: the list grouped under project headings. Off: one list.",
+      "Folders: one folder per project. List headers: the list grouped under project headings. Off: one list.",
     options: [...PROJECT_OPTIONS] as string[],
-    default: "Folder tabs",
+    default: "Folders",
+  },
+  folderLayout: {
+    type: "select",
+    label: "Folder layout",
+    description: "Tabs sit above the list. The rail is a narrow column on the left with an icon and a name per folder.",
+    options: [...FOLDER_LAYOUT_OPTIONS] as string[],
+    default: "Tabs above the list",
   },
   density: {
     type: "select",
@@ -68,11 +76,13 @@ export const SETTINGS = {
 
 export type Language = "auto" | "en" | "ru";
 export type ProjectGrouping = "tabs" | "headers" | "off";
+export type FolderLayout = "tabs" | "rail";
 export type Density = "comfortable" | "compact";
 
 export interface ChatSettings {
   language: Language;
   projects: ProjectGrouping;
+  folderLayout: FolderLayout;
   density: Density;
   stickyHeadings: boolean;
   sectionFolders: boolean;
@@ -97,7 +107,13 @@ export function parseSettings(values: Readonly<Record<string, unknown>> | undefi
     language: pick<Language>(source.language, { Auto: "auto", English: "en", Русский: "ru" }, "auto"),
     projects: pick<ProjectGrouping>(
       source.projects,
-      { "Folder tabs": "tabs", "List headers": "headers", Off: "off" },
+      // "Folder tabs" is the 0.1 label of "Folders".
+      { Folders: "tabs", "Folder tabs": "tabs", "List headers": "headers", Off: "off" },
+      "tabs",
+    ),
+    folderLayout: pick<FolderLayout>(
+      source.folderLayout,
+      { "Tabs above the list": "tabs", "Rail on the left": "rail" },
       "tabs",
     ),
     density: pick<Density>(source.density, { Comfortable: "comfortable", Compact: "compact" }, "comfortable"),

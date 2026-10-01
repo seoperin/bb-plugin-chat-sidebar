@@ -122,7 +122,7 @@ export function ProjectColorSubmenu({ projectId }: { projectId: string }) {
       </ContextMenuSubTrigger>
       <ContextMenuSubContent className="min-w-44">
         <ContextMenuItem onSelect={() => setColor(projectId, null)}>
-          <Icon name="Sparkles" />
+          <Icon name="Palette" />
           <span className="flex-1">{t("color.auto")}</span>
           {pick === null ? <Icon name="Check" className="size-3.5" /> : null}
         </ContextMenuItem>

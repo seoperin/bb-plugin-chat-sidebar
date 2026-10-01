@@ -24,6 +24,7 @@ bb shows these on the plugin's page. Agents and scripts can change them too:
 ```sh
 bb plugin config chat-sidebar                          # show all
 bb plugin config chat-sidebar set projects "List headers"
+bb plugin config chat-sidebar set folderLayout "Rail on the left"
 bb plugin config chat-sidebar set density Compact
 bb plugin config chat-sidebar set language Русский
 bb plugin config chat-sidebar unset language           # back to Auto
@@ -32,7 +33,8 @@ bb plugin config chat-sidebar unset language           # back to Auto
 | Key | Values | Default |
 | --- | --- | --- |
 | `language` | `Auto`, `English`, `Русский` | `Auto` (browser language, else English) |
-| `projects` | `Folder tabs`, `List headers`, `Off` | `Folder tabs` |
+| `projects` | `Folders`, `List headers`, `Off` | `Folders` |
+| `folderLayout` | `Tabs above the list`, `Rail on the left` | `Tabs above the list` |
 | `density` | `Comfortable`, `Compact` | `Comfortable` |
 | `stickyHeadings` | boolean: with `List headers`, the current heading stays under the tabs | `true` |
 | `sectionFolders` | boolean: a tab per bb section | `true` |

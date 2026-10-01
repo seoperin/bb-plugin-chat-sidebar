@@ -2,7 +2,7 @@
 // The strip scrolls sideways (a mouse wheel scrolls it too) and keeps the
 // active tab in view. Right-click a tab to read everything in it or, for a
 // project, start a new chat there.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { experimental_useSidebarThreadActions } from "@get-bb/plugin-sdk/app";
 
@@ -48,6 +48,51 @@ export function useMarkFolderRead(rows: readonly ChatRow[]) {
   };
 }
 
+/** Right-click menu of a folder: read everything, start a chat, colour a project. */
+export function FolderMenu({
+  folder,
+  rows,
+  children,
+}: {
+  folder: Folder;
+  rows: readonly ChatRow[];
+  children: ReactNode;
+}) {
+  const t = useT();
+  const markRead = useMarkFolderRead(rows);
+  const actions = experimental_useSidebarThreadActions();
+  const unread = unreadIdsIn(rows, folder.id).length;
+  const projectId = folder.id.startsWith("project:") ? folder.id.slice("project:".length) : null;
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+      <ContextMenuContent className="min-w-52">
+        <ContextMenuItem disabled={unread === 0} onSelect={() => void markRead(folder.id)}>
+          <Icon name="Check" />
+          {unread === 0 ? t("folder.allRead") : t("folder.markRead", { count: unread })}
+        </ContextMenuItem>
+        {projectId !== null ? (
+          <ContextMenuItem onSelect={() => actions.openNewThread({ projectId, focusPrompt: true })}>
+            <Icon name="MessageSquarePlus" />
+            {t("folder.newChat")}
+          </ContextMenuItem>
+        ) : null}
+        {projectId !== null ? <ProjectColorSubmenu projectId={projectId} /> : null}
+        {folder.id.startsWith("section:") ? (
+          <ContextMenuItem
+            onSelect={() =>
+              actions.openNewThread({ sectionId: folder.id.slice("section:".length), focusPrompt: true })
+            }
+          >
+            <Icon name="MessageSquarePlus" />
+            {t("folder.newChatSection")}
+          </ContextMenuItem>
+        ) : null}
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+}
+
 export function FolderTabs({
   folders,
   rows,
@@ -61,8 +106,6 @@ export function FolderTabs({
 }) {
   const t = useT();
   const label = useFolderLabel();
-  const markRead = useMarkFolderRead(rows);
-  const actions = experimental_useSidebarThreadActions();
   const stripRef = useRef<HTMLElement>(null);
 
   // A vertical wheel scrolls the strip sideways; React's onWheel is passive.
@@ -114,71 +157,44 @@ export function FolderTabs({
     >
       {folders.map((folder) => {
         const selected = folder.id === active;
-        const unread = unreadIdsIn(rows, folder.id).length;
-        const projectId = folder.id.startsWith("project:") ? folder.id.slice("project:".length) : null;
         return (
-          <ContextMenu key={folder.id}>
-            <ContextMenuTrigger asChild>
-              <button
-                type="button"
-                aria-pressed={selected}
-                onClick={() => onSelect(folder.id)}
-                className={cn(
-                  "flex h-6 max-w-40 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                  selected
-                    ? "bg-foreground text-background"
-                    : "bg-sidebar-accent/70 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
-                )}
-              >
-                {folder.lane !== null ? (
-                  <span
-                    data-lane={folder.lane}
-                    aria-hidden="true"
-                    className="chat-lane-dot size-1.5 shrink-0 rounded-full"
-                  />
-                ) : null}
-                <span className="truncate">{label(folder)}</span>
-                {folder.lane !== null ? (
-                  <span className="sr-only">
-                    {`, ${t(folder.lane === "attention" ? "folder.hasWaiting" : "folder.hasWorking")}`}
-                  </span>
-                ) : null}
-                {folder.badge > 0 ? (
-                  <span
-                    className={cn(
-                      "grid h-4 min-w-4 shrink-0 place-items-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
-                      selected ? "bg-background text-foreground" : "bg-muted-foreground/20",
-                    )}
-                  >
-                    {folder.badge}
-                  </span>
-                ) : null}
-              </button>
-            </ContextMenuTrigger>
-            <ContextMenuContent className="min-w-52">
-              <ContextMenuItem disabled={unread === 0} onSelect={() => void markRead(folder.id)}>
-                <Icon name="Check" />
-                {unread === 0 ? t("folder.allRead") : t("folder.markRead", { count: unread })}
-              </ContextMenuItem>
-              {projectId !== null ? (
-                <ContextMenuItem onSelect={() => actions.openNewThread({ projectId, focusPrompt: true })}>
-                  <Icon name="MessageSquarePlus" />
-                  {t("folder.newChat")}
-                </ContextMenuItem>
+          <FolderMenu key={folder.id} folder={folder} rows={rows}>
+            <button
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onSelect(folder.id)}
+              className={cn(
+                "flex h-6 max-w-40 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                selected
+                  ? "bg-foreground text-background"
+                  : "bg-sidebar-accent/70 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+              )}
+            >
+              {folder.lane !== null ? (
+                <span
+                  data-lane={folder.lane}
+                  aria-hidden="true"
+                  className="chat-lane-dot size-1.5 shrink-0 rounded-full"
+                />
               ) : null}
-              {projectId !== null ? <ProjectColorSubmenu projectId={projectId} /> : null}
-              {folder.id.startsWith("section:") ? (
-                <ContextMenuItem
-                  onSelect={() =>
-                    actions.openNewThread({ sectionId: folder.id.slice("section:".length), focusPrompt: true })
-                  }
+              <span className="truncate">{label(folder)}</span>
+              {folder.lane !== null ? (
+                <span className="sr-only">
+                  {`, ${t(folder.lane === "attention" ? "folder.hasWaiting" : "folder.hasWorking")}`}
+                </span>
+              ) : null}
+              {folder.badge > 0 ? (
+                <span
+                  className={cn(
+                    "grid h-4 min-w-4 shrink-0 place-items-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
+                    selected ? "bg-background text-foreground" : "bg-muted-foreground/20",
+                  )}
                 >
-                  <Icon name="MessageSquarePlus" />
-                  {t("folder.newChatSection")}
-                </ContextMenuItem>
+                  {folder.badge}
+                </span>
               ) : null}
-            </ContextMenuContent>
-          </ContextMenu>
+            </button>
+          </FolderMenu>
         );
       })}
     </nav>

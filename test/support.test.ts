@@ -67,6 +67,7 @@ describe("parseSettings", () => {
     expect(parseSettings(undefined)).toEqual({
       language: "auto",
       projects: "tabs",
+      folderLayout: "tabs",
       density: "comfortable",
       stickyHeadings: true,
       sectionFolders: true,
