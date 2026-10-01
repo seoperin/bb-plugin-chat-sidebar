@@ -69,6 +69,15 @@ function useNow(intervalMs: number): number {
   return now;
 }
 
+/** bb's scroll area around the list: the root for paging observers. */
+function scrollParentOf(element: HTMLElement | null): HTMLElement | null {
+  for (let current = element?.parentElement ?? null; current !== null; current = current.parentElement) {
+    const { overflowY } = getComputedStyle(current);
+    if (overflowY === "auto" || overflowY === "scroll") return current;
+  }
+  return null;
+}
+
 /** Arrow keys move between rows; from the search field, ArrowDown enters the list. */
 function focusRow(container: HTMLElement | null, from: Element | null, step: 1 | -1 | "first") {
   const anchors = [...(container?.querySelectorAll<HTMLElement>("[data-chat-anchor]") ?? [])];
@@ -183,6 +192,7 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
     return () => observer.disconnect();
   }, []);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
 
   const setFolder = (next: FolderId) => {
     setFolderState(next);
@@ -265,6 +275,9 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   const shown = hidesQuiet ? matched.filter((row) => !isQuiet(row, cutoff)) : matched;
   const hiddenQuiet = matched.length - shown.length;
 
+  // Rows render a page at a time: the next page as the end comes near, and
+  // back to the first page once the list is scrolled to the top again, so a
+  // long scroll does not keep hundreds of rows mounted.
   useEffect(() => setLimit(PAGE_SIZE), [activeFolder, needle]);
   const visible = shown.slice(0, limit);
   useEffect(() => {
@@ -274,11 +287,29 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) setLimit((value) => value + PAGE_SIZE);
       },
-      { rootMargin: "400px" },
+      { root: scrollParentOf(sentinel), rootMargin: "400px" },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [visible.length, shown.length]);
+  const paged = limit > PAGE_SIZE;
+  useEffect(() => {
+    const sentinel = topSentinelRef.current;
+    if (sentinel === null || !paged) return;
+    // Only a return to the top resets: on a screen taller than one page the
+    // top is visible while the next page loads, and resetting then would loop.
+    let leftTop = false;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const atTop = entries.some((entry) => entry.isIntersecting);
+        if (!atTop) leftTop = true;
+        else if (leftTop) setLimit(PAGE_SIZE);
+      },
+      { root: scrollParentOf(sentinel) },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [paged]);
 
   const providerById = useMemo(
     () => new Map<string, ProviderSummary>(providers.map((provider) => [provider.id, provider])),
@@ -355,6 +386,7 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
       )}
       style={{ "--chat-top": `${topHeight}px` } as CSSProperties}
     >
+      <div ref={topSentinelRef} className="-mb-px h-px" aria-hidden="true" />
       <div ref={topRef} className="sticky top-0 z-10 bg-sidebar pt-1">
         <div className="relative px-2 pb-2">
           <Icon
