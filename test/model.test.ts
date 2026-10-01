@@ -125,7 +125,7 @@ describe("groupByProject", () => {
       projects,
     );
     const groups = groupByProject(rows, projects);
-    expect(groups.map((group) => [group.key, ids(group.rows)])).toEqual([
+    expect(groups.map((group) => [group.key, ids(group.chats)])).toEqual([
       ["pinned", ["pin"]],
       ["proj_b", ["b"]],
       ["proj_a", ["a"]],

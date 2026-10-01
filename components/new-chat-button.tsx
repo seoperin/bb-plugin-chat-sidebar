@@ -15,7 +15,7 @@ import { swatch } from "@/lib/colors";
 import type { Folder } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { useT } from "./chat-context";
-import { useFolderLabel } from "./folder-tabs";
+import { useFolderLabel } from "./folder-menu";
 import { useProjectColors } from "./project-colors";
 
 export function NewChatButton({

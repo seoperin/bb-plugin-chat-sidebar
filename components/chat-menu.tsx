@@ -21,7 +21,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Icon } from "@/components/ui/icon";
-import type { ChatRow } from "@/lib/model";
+import type { Chat } from "@/lib/model";
 import { laneOf } from "@/lib/status";
 import { useT } from "./chat-context";
 import { ProjectColorSubmenu } from "./project-colors";
@@ -41,7 +41,7 @@ export function ChatMenu({
   onOpen,
   onRename,
 }: {
-  row: ChatRow;
+  row: Chat;
   children: ReactNode;
   onOpen: (threadId: string, split: boolean) => void;
   onRename: () => void;

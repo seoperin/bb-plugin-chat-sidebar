@@ -6,10 +6,10 @@ import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 
 import { Icon } from "@/components/ui/icon";
 import { avatarBackground } from "@/lib/colors";
-import { initialOf, type ChatRow, type Folder, type FolderId } from "@/lib/model";
+import { initialOf, type Chat, type Folder, type FolderId } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { useT } from "./chat-context";
-import { FolderMenu, useFolderLabel } from "./folder-tabs";
+import { FolderMenu, useFolderLabel } from "./folder-menu";
 import { useProjectColors } from "./project-colors";
 
 const ICONS: Partial<Record<FolderId, string>> = {
@@ -56,7 +56,7 @@ export function FolderRail({
   top,
 }: {
   folders: readonly Folder[];
-  rows: readonly ChatRow[];
+  rows: readonly Chat[];
   active: FolderId;
   /** The visible height of bb's scroll area: the rail fills it and scrolls inside. */
   height: number;

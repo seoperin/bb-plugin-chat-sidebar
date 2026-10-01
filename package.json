@@ -4,6 +4,14 @@
   "description": "Read your threads like a messenger: one row per task with live status, an Attention folder, project tabs, and search.",
   "license": "MIT",
   "author": "Evgeniy Perin",
+  "homepage": "https://github.com/seoperin/bb-plugin-chat-sidebar#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seoperin/bb-plugin-chat-sidebar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/seoperin/bb-plugin-chat-sidebar/issues"
+  },
   "keywords": [
     "bb",
     "bb-plugin",
@@ -41,7 +49,8 @@
     "app.tsx",
     "app.css",
     "components/",
-    "lib/"
+    "lib/",
+    "hooks/"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",

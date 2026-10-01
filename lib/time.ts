@@ -10,7 +10,7 @@ export function formatChatTime(at: number, now: number, { locale, t }: Translato
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   const date = new Date(at);
   if (at >= startOfToday) {
-    return date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" });
   }
   if (at >= startOfToday - DAY) return t("time.yesterday");
   if (at >= startOfToday - 6 * DAY) return date.toLocaleDateString(locale, { weekday: "short" });

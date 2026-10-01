@@ -25,6 +25,9 @@ export const PALETTE = [
 
 export type ColorId = (typeof PALETTE)[number]["id"];
 
+/** Realtime channel the backend publishes picked colours on. */
+export const COLORS_CHANNEL = "project-colors";
+
 /** Automatic colours, most distinct first. */
 const AUTO_ORDER: readonly ColorId[] = [
   "blue",

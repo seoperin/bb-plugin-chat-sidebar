@@ -12,7 +12,7 @@ import type {
 
 import { LANE_RANK, laneOf, type Lane } from "./status";
 
-export interface ChatRow {
+export interface Chat {
   thread: PluginSidebarThread;
   project: PluginSidebarProject | null;
   /** The most urgent lane across the row's threads. */
@@ -87,12 +87,12 @@ export function buildChats(
   threads: readonly PluginSidebarThread[],
   projects: readonly PluginSidebarProject[],
   { lifecycle = "active", foldChildren = true }: BuildOptions = {},
-): ChatRow[] {
+): Chat[] {
   const archived = lifecycle === "archived";
   const visible = threads.filter((thread) => !thread.isHidden && thread.isArchived === archived);
   const byId = new Map(visible.map((thread) => [thread.id, thread]));
   const projectById = new Map(projects.map((project) => [project.id, project]));
-  const rows = new Map<string, ChatRow>();
+  const rows = new Map<string, Chat>();
 
   for (const thread of visible) {
     const root = foldChildren ? rootOf(thread, byId) : thread;
@@ -138,12 +138,19 @@ export function buildChats(
   });
 }
 
+/** The most urgent live status among chats, for a folder's or heading's dot. */
+export function mostUrgentLane(chats: readonly Chat[]): "attention" | "working" | null {
+  if (chats.some((chat) => chat.lane === "attention")) return "attention";
+  if (chats.some((chat) => chat.lane === "working")) return "working";
+  return null;
+}
+
 /** Attention: everything that concerns the user now — waiting, working, or unread. */
-export function needsAttention(row: ChatRow): boolean {
+export function needsAttention(row: Chat): boolean {
   return row.lane === "attention" || row.lane === "working" || row.unread;
 }
 
-export function inFolder(row: ChatRow, folder: FolderId): boolean {
+export function inFolder(row: Chat, folder: FolderId): boolean {
   if (folder === "all") return true;
   if (folder === "attention") return needsAttention(row);
   if (folder === "archive") return row.thread.isArchived;
@@ -159,7 +166,7 @@ export interface FolderOptions {
 
 /** Projects in the order they are used: the freshest chat comes first. */
 export function projectsByUse(
-  rows: readonly ChatRow[],
+  rows: readonly Chat[],
   projects: readonly PluginSidebarProject[],
 ): PluginSidebarProject[] {
   const lastUse = new Map<string, number>();
@@ -172,7 +179,7 @@ export function projectsByUse(
 }
 
 export function buildFolders(
-  rows: readonly ChatRow[],
+  rows: readonly Chat[],
   projects: readonly PluginSidebarProject[],
   sections: readonly PluginSidebarSection[],
   options: FolderOptions,
@@ -184,11 +191,7 @@ export function buildFolders(
       name,
       personal,
       badge: id === "attention" ? inside.length : inside.filter((row) => row.unread).length,
-      lane: inside.some((row) => row.lane === "attention")
-        ? "attention"
-        : inside.some((row) => row.lane === "working")
-          ? "working"
-          : null,
+      lane: mostUrgentLane(inside),
     };
   };
   // Attention stays put even when empty, so the tab strip never shifts.
@@ -212,7 +215,7 @@ export interface ProjectGroup {
   /** `pinned` for the pinned block, otherwise the project id (`""` when unknown). */
   key: string;
   project: PluginSidebarProject | null;
-  rows: ChatRow[];
+  chats: Chat[];
 }
 
 /**
@@ -220,14 +223,14 @@ export interface ProjectGroup {
  * per project in order of use. Rows keep their order inside a group.
  */
 export function groupByProject(
-  rows: readonly ChatRow[],
+  rows: readonly Chat[],
   projects: readonly PluginSidebarProject[],
 ): ProjectGroup[] {
   const pinned = rows.filter((row) => row.thread.isPinned);
   const rest = rows.filter((row) => !row.thread.isPinned);
   const groups: ProjectGroup[] = [];
-  if (pinned.length > 0) groups.push({ key: "pinned", project: null, rows: pinned });
-  const byProject = new Map<string, ChatRow[]>();
+  if (pinned.length > 0) groups.push({ key: "pinned", project: null, chats: pinned });
+  const byProject = new Map<string, Chat[]>();
   for (const row of rest) {
     const list = byProject.get(row.thread.projectId) ?? [];
     list.push(row);
@@ -235,12 +238,12 @@ export function groupByProject(
   }
   for (const project of projectsByUse(rest, projects)) {
     const list = byProject.get(project.id);
-    if (list !== undefined) groups.push({ key: project.id, project, rows: list });
+    if (list !== undefined) groups.push({ key: project.id, project, chats: list });
     byProject.delete(project.id);
   }
   // Threads whose project bb did not send land in one trailing group.
   const orphans = [...byProject.values()].flat();
-  if (orphans.length > 0) groups.push({ key: "", project: null, rows: orphans });
+  if (orphans.length > 0) groups.push({ key: "", project: null, chats: orphans });
   return groups;
 }
 
@@ -270,12 +273,12 @@ export function pinNeighbors(
 }
 
 /** Every unread thread in a folder — for "Mark all as read". */
-export function unreadIdsIn(rows: readonly ChatRow[], folder: FolderId): string[] {
+export function unreadIdsIn(rows: readonly Chat[], folder: FolderId): string[] {
   return rows.filter((row) => inFolder(row, folder)).flatMap((row) => row.unreadIds);
 }
 
 /** Case-insensitive match on title, project, branch, and folded children's titles. */
-export function matchesQuery(row: ChatRow, needle: string): boolean {
+export function matchesQuery(row: Chat, needle: string): boolean {
   if (needle === "") return true;
   const haystack = [
     row.thread.displayTitle,
@@ -289,7 +292,7 @@ export function matchesQuery(row: ChatRow, needle: string): boolean {
 }
 
 /** A quiet chat: nothing running, nothing unread, not pinned, and old. */
-export function isQuiet(row: ChatRow, cutoff: number): boolean {
+export function isQuiet(row: Chat, cutoff: number): boolean {
   return row.lane === null && !row.unread && !row.thread.isPinned && row.activityAt < cutoff;
 }
 
@@ -299,6 +302,6 @@ export function initialOf(name: string): string {
 }
 
 /** A row's avatar letter: the project's, or the chat's own in the personal project. */
-export function avatarLetter(row: ChatRow): string {
+export function avatarLetter(row: Chat): string {
   return initialOf(row.project && !row.project.isPersonal ? row.project.name : row.thread.displayTitle);
 }

@@ -12,7 +12,9 @@
     },
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "skipLibCheck": false
   },
-  "include": ["server.ts", "app.tsx", "components", "lib", "test"]
+  "include": ["server.ts", "app.tsx", "components", "hooks", "lib", "test", "vitest.config.ts"]
 }

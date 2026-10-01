@@ -23,4 +23,4 @@ Chat Sidebar replaces bb's sidebar thread list with a chat list. bb's own sideba
 
 ## Requirements
 
-bb 0.44 or later. Nothing leaves your machine, and the plugin needs no accounts or keys. To switch back to bb's own list, pick it under Settings → Appearance → Sidebar.
+bb 0.44 or later. No accounts, keys, or external services: everything stays in bb. To switch back to bb's own list, pick it under Settings → Appearance → Sidebar.

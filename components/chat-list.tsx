@@ -1,44 +1,51 @@
-// The sidebar thread list, as a messenger: search, folder tabs, and chats.
+// The sidebar thread list, as a messenger: search, folders, and chats.
 //
 // bb keeps the New-thread button, plugin rows, and footer; this component
 // owns the scrolling list only. Opening a chat routes through bb's own
 // `actions.open`, so splits, pane focus, and the mobile drawer behave as in
 // bb's list.
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { toast } from "sonner";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type RefObject,
+} from "react";
 import {
   experimental_useProviders,
   experimental_useSidebarThreadActions,
   experimental_useSidebarThreads,
-  useSdk,
-  type PluginSidebarProject,
   type PluginThreadListProps,
 } from "@get-bb/plugin-sdk/app";
 
-import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
-import { Icon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
+import { usePaging } from "@/hooks/use-paging";
+import { usePinnedOrder } from "@/hooks/use-pinned-order";
+import { useScrollArea } from "@/hooks/use-scroll-area";
 import {
   buildChats,
   buildFolders,
-  projectsByUse,
   groupByProject,
   inFolder,
   isQuiet,
   matchesQuery,
-  pinNeighbors,
-  type ChatRow as ChatRowModel,
+  projectsByUse,
+  type Chat,
   type FolderId,
-  type ProjectGroup,
 } from "@/lib/model";
+import { parseStringArray, readStored, writeStored } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { BackToTop } from "./back-to-top";
 import { ChatProvider, useChat } from "./chat-context";
 import { ChatRow, type ProviderSummary, type RowDrag } from "./chat-row";
 import { FolderRail } from "./folder-rail";
 import { FolderTabs } from "./folder-tabs";
+import { GroupHeader } from "./group-header";
 import { NewChatButton } from "./new-chat-button";
-import { ProjectColorSubmenu, ProjectColorsProvider } from "./project-colors";
-import { usePinReorder } from "./use-pin-reorder";
+import { ProjectColorsProvider } from "./project-colors";
+import { SearchBar } from "./search-bar";
 
 const PAGE_SIZE = 60;
 const DAY = 86_400_000;
@@ -46,24 +53,6 @@ const FOLDER_KEY = "chat-sidebar/folder";
 const COLLAPSED_KEY = "chat-sidebar/collapsed-groups";
 const ACTIVE_ONLY = { experimental_lifecycles: ["active"] } as const;
 const WITH_ARCHIVE = { experimental_lifecycles: ["active", "archived"] } as const;
-
-// Per-viewer conveniences: without storage they simply are not remembered.
-function readStored<T>(key: string, parse: (raw: string) => T, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw === null ? fallback : parse(raw);
-  } catch {
-    return fallback;
-  }
-}
-
-function writeStored(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // Not remembered; nothing else depends on it.
-  }
-}
 
 function useNow(intervalMs: number): number {
   const [now, setNow] = useState(() => Date.now());
@@ -74,19 +63,25 @@ function useNow(intervalMs: number): number {
   return now;
 }
 
-/** bb's scroll area around the list: the root for paging observers. */
-function scrollParentOf(element: HTMLElement | null): HTMLElement | null {
-  for (let current = element?.parentElement ?? null; current !== null; current = current.parentElement) {
-    const { overflowY } = getComputedStyle(current);
-    if (overflowY === "auto" || overflowY === "scroll") return current;
-  }
-  return null;
+/** The height of an element, kept current. */
+function useHeight(ref: RefObject<HTMLElement | null>): number {
+  const [height, setHeight] = useState(0);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element === null) return;
+    const measure = () => setHeight(element.getBoundingClientRect().height);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+  return height;
 }
 
 /** Arrow keys move between rows; from the search field, ArrowDown enters the list. */
 function focusRow(container: HTMLElement | null, from: Element | null, step: 1 | -1 | "first") {
   const anchors = [...(container?.querySelectorAll<HTMLElement>("[data-chat-anchor]") ?? [])];
-  if (anchors.length === 0) return;
   if (step === "first") {
     anchors[0]?.focus();
     return;
@@ -103,72 +98,11 @@ export function ChatList(props: PluginThreadListProps) {
   );
 }
 
-function GroupHeader({
-  group,
-  collapsed,
-  sticky,
-  onToggle,
-}: {
-  group: ProjectGroup;
-  collapsed: boolean;
-  /** Stays under the search and tabs while its group scrolls past. */
-  sticky: boolean;
-  onToggle: () => void;
-}) {
-  const { t } = useChat().i18n;
-  const name =
-    group.key === "pinned"
-      ? t("folder.pinned")
-      : group.project === null
-        ? t("folder.other")
-        : group.project.isPersonal
-          ? t("folder.personal")
-          : group.project.name;
-  const unread = group.rows.filter((row) => row.unread).length;
-  const lane = group.rows.some((row) => row.lane === "attention")
-    ? "attention"
-    : group.rows.some((row) => row.lane === "working")
-      ? "working"
-      : null;
-  const header = (
-    <button
-      type="button"
-      aria-expanded={!collapsed}
-      aria-label={t(collapsed ? "folder.expand" : "folder.collapse", { name })}
-      onClick={onToggle}
-      className={cn(
-        "flex h-7 w-full cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
-        sticky && "sticky top-[var(--chat-top,0px)] z-[5] bg-sidebar",
-      )}
-    >
-      <Icon name={collapsed ? "ChevronRight" : "ChevronDown"} className="size-3 shrink-0" />
-      <span className="min-w-0 truncate">{name}</span>
-      {collapsed && lane !== null ? (
-        <span data-lane={lane} className="chat-lane-dot size-1.5 shrink-0 rounded-full" aria-hidden="true" />
-      ) : null}
-      {collapsed && unread > 0 ? (
-        <span className="ml-auto grid h-4 min-w-4 place-items-center rounded-full bg-muted-foreground/20 px-1 text-[10px] font-semibold tabular-nums normal-case">
-          {unread}
-        </span>
-      ) : null}
-    </button>
-  );
-  if (group.project === null) return header;
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>{header}</ContextMenuTrigger>
-      <ContextMenuContent className="min-w-52">
-        <ProjectColorSubmenu projectId={group.project.id} />
-      </ContextMenuContent>
-    </ContextMenu>
-  );
-}
-
 function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   const { settings, i18n } = useChat();
   const { t } = i18n;
   const [folder, setFolderState] = useState<FolderId>(() =>
-    readStored(FOLDER_KEY, (raw) => raw as FolderId, "all"),
+    readStored<FolderId>(FOLDER_KEY, (raw) => raw as FolderId, "all"),
   );
   // bb sends the archive in pages and only on request: load it while open.
   const archiveMode = folder === "archive" && settings.archiveFolder;
@@ -180,33 +114,20 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
     experimental_hosts: hosts,
     experimental_archived: archivePages,
   } = experimental_useSidebarThreads(archiveMode ? WITH_ARCHIVE : ACTIVE_ONLY);
-  const sdk = useSdk();
   const actions = experimental_useSidebarThreadActions();
   const { providers } = experimental_useProviders();
   const now = useNow(30_000);
   const [query, setQuery] = useState("");
   const [showQuiet, setShowQuiet] = useState(false);
-  const [limit, setLimit] = useState(PAGE_SIZE);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(
-    () => new Set(readStored<string[]>(COLLAPSED_KEY, (raw) => JSON.parse(raw) as string[], [])),
+    () => new Set(readStored(COLLAPSED_KEY, parseStringArray, [])),
   );
+  const rail = settings.folderLayout === "rail";
   const listRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
-  // Sticky project headings sit right under the search and tabs, whose
-  // height changes with the font size and when the tab strip appears.
-  const [topHeight, setTopHeight] = useState(0);
-  useLayoutEffect(() => {
-    const top = topRef.current;
-    if (top === null) return;
-    const measure = () => setTopHeight(top.getBoundingClientRect().height);
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(top);
-    return () => observer.disconnect();
-  }, []);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const topSentinelRef = useRef<HTMLDivElement>(null);
+  // Sticky project headings sit right under the search bar and tabs.
+  const topHeight = useHeight(topRef);
+  const scrollArea = useScrollArea(topRef, { trackHeight: rail });
 
   const setFolder = (next: FolderId) => {
     setFolderState(next);
@@ -225,168 +146,76 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
     onNavigate();
   };
 
-  const rows = useMemo(
+  const chats = useMemo(
     () => buildChats(threads, projects, { foldChildren: settings.foldChildren }),
     [threads, projects, settings.foldChildren],
   );
-  const archivedRows = useMemo(
+  const archivedChats = useMemo(
     () =>
-      archiveMode
-        ? buildChats(threads, projects, { lifecycle: "archived", foldChildren: settings.foldChildren })
-        : [],
+      archiveMode ? buildChats(threads, projects, { lifecycle: "archived", foldChildren: settings.foldChildren }) : [],
     [archiveMode, threads, projects, settings.foldChildren],
   );
   // Automatic colours go to projects that have chats, so a few busy projects
   // are not pushed into the in-between hues by empty ones.
-  const projectsInUse = useMemo(() => projectsByUse(rows, projects), [rows, projects]);
+  const projectsInUse = useMemo(() => projectsByUse(chats, projects), [chats, projects]);
   const folders = useMemo(
     () =>
-      buildFolders(rows, projects, sections, {
+      buildFolders(chats, projects, sections, {
         projectTabs: settings.projects === "tabs",
         sectionTabs: settings.sectionFolders,
         archiveTab: settings.archiveFolder,
       }),
-    [rows, projects, sections, settings.projects, settings.sectionFolders, settings.archiveFolder],
+    [chats, projects, sections, settings.projects, settings.sectionFolders, settings.archiveFolder],
   );
-  const activeFolder: FolderId = folders.some((item) => item.id === folder) ? folder : "all";
-  const currentFolder = folders.find((item) => item.id === activeFolder) ?? null;
+  // A remembered folder that no longer exists falls back to All.
+  const currentFolder = folders.find((item) => item.id === folder) ?? folders[0] ?? null;
+  const activeFolder: FolderId = currentFolder?.id ?? "all";
 
-  // Pinned order is global across folders. Until bb sends the new order back,
-  // show the one we asked for.
-  const pinnedOrder = useMemo(
-    () => rows.filter((row) => row.thread.isPinned).map((row) => row.thread.id),
-    [rows],
-  );
-  const [optimisticPins, setOptimisticPins] = useState<string[] | null>(null);
-  const pinnedKey = pinnedOrder.join(",");
-  useEffect(() => setOptimisticPins(null), [pinnedKey]);
-  const orderedRows = useMemo(() => {
-    if (optimisticPins === null) return rows;
-    const rank = new Map(optimisticPins.map((id, index) => [id, index]));
-    const pinned = rows
-      .filter((row) => row.thread.isPinned)
-      .sort((a, b) => (rank.get(a.thread.id) ?? 0) - (rank.get(b.thread.id) ?? 0));
-    return [...pinned, ...rows.filter((row) => !row.thread.isPinned)];
-  }, [rows, optimisticPins]);
-  const reorder = usePinReorder(listRef, (dragged, target, place) => {
-    const plan = pinNeighbors(optimisticPins ?? pinnedOrder, dragged, target, place);
-    if (plan === null) return;
-    setOptimisticPins(plan.order);
-    sdk.threads
-      .reorderPinned({ threadId: dragged, previousThreadId: plan.previousThreadId, nextThreadId: plan.nextThreadId })
-      .catch((cause: unknown) => {
-        setOptimisticPins(null);
-        toast.error(t("toast.reorderFailed"), {
-          description: cause instanceof Error ? cause.message : String(cause),
-        });
-      });
-  });
+  const { ordered, reorder } = usePinnedOrder(chats, listRef, t("toast.reorderFailed"));
 
   const needle = query.trim().toLocaleLowerCase();
-  const matched = (archiveMode ? archivedRows : orderedRows).filter(
-    (row) => (archiveMode || inFolder(row, activeFolder)) && matchesQuery(row, needle),
+  const matched = (archiveMode ? archivedChats : ordered).filter(
+    (chat) => (archiveMode || inFolder(chat, activeFolder)) && matchesQuery(chat, needle),
   );
   // Quiet old chats hide behind one button; search and Attention see all.
   const cutoff = settings.hideQuietAfterDays > 0 ? now - settings.hideQuietAfterDays * DAY : null;
-  const hidesQuiet =
-    cutoff !== null && !showQuiet && needle === "" && !archiveMode && activeFolder !== "attention";
-  const shown = hidesQuiet ? matched.filter((row) => !isQuiet(row, cutoff)) : matched;
+  const hidesQuiet = cutoff !== null && !showQuiet && needle === "" && !archiveMode && activeFolder !== "attention";
+  const shown = hidesQuiet ? matched.filter((chat) => !isQuiet(chat, cutoff)) : matched;
   const hiddenQuiet = matched.length - shown.length;
 
-  // Rows render a page at a time: the next page as the end comes near, and
-  // back to the first page once the list is scrolled to the top again, so a
-  // long scroll does not keep hundreds of rows mounted.
-  useEffect(() => setLimit(PAGE_SIZE), [activeFolder, needle]);
-  const visible = shown.slice(0, limit);
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (sentinel === null || visible.length >= shown.length) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) setLimit((value) => value + PAGE_SIZE);
-      },
-      { root: scrollParentOf(sentinel), rootMargin: "400px" },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [visible.length, shown.length]);
-  // "Back to top" shows once the list is scrolled about a screen down.
-  // The rail fills the visible height of bb's scroll area and scrolls inside it.
-  const [viewportHeight, setViewportHeight] = useState(0);
-  const rail = settings.folderLayout === "rail";
-  useLayoutEffect(() => {
-    const scroller = scrollParentOf(topSentinelRef.current);
-    if (scroller === null || !rail) return;
-    const measure = () => setViewportHeight(scroller.clientHeight);
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(scroller);
-    return () => observer.disconnect();
-  }, [rail]);
-
-  const [farFromTop, setFarFromTop] = useState(false);
-  useEffect(() => {
-    const scroller = scrollParentOf(topSentinelRef.current);
-    if (scroller === null) return;
-    const update = () => setFarFromTop(scroller.scrollTop > scroller.clientHeight * 0.8);
-    update();
-    scroller.addEventListener("scroll", update, { passive: true });
-    return () => scroller.removeEventListener("scroll", update);
-  }, []);
-  const scrollToTop = () => {
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    scrollParentOf(topSentinelRef.current)?.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
-  };
-
-  const paged = limit > PAGE_SIZE;
-  useEffect(() => {
-    const sentinel = topSentinelRef.current;
-    if (sentinel === null || !paged) return;
-    // Only a return to the top resets: on a screen taller than one page the
-    // top is visible while the next page loads, and resetting then would loop.
-    let leftTop = false;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const atTop = entries.some((entry) => entry.isIntersecting);
-        if (!atTop) leftTop = true;
-        else if (leftTop) setLimit(PAGE_SIZE);
-      },
-      { root: scrollParentOf(sentinel) },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [paged]);
+  const paging = usePaging(shown.length, PAGE_SIZE, `${activeFolder}\n${needle}`);
+  const visible = shown.slice(0, paging.limit);
 
   const providerById = useMemo(
     () => new Map<string, ProviderSummary>(providers.map((provider) => [provider.id, provider])),
     [providers],
   );
-  const inProjectFolder = activeFolder.startsWith("project:");
   const grouped = settings.projects === "headers" && !archiveMode && needle === "";
+  const showProject = !activeFolder.startsWith("project:") && !grouped;
+  const showHost = (hosts?.length ?? 0) > 1;
   const pinDragAllowed = !archiveMode && needle === "";
 
-  const renderRow = (row: ChatRowModel) => {
+  const renderRow = (chat: Chat) => {
+    const { id } = chat.thread;
     const drag: RowDrag | null =
-      pinDragAllowed && row.thread.isPinned
+      pinDragAllowed && chat.thread.isPinned
         ? {
-            dragging: reorder.state.dragging === row.thread.id,
-            hint: reorder.state.hint?.id === row.thread.id ? reorder.state.hint.place : null,
-            onPointerDown: (event) => reorder.start(row.thread.id, event),
+            dragging: reorder.state.dragging === id,
+            hint: reorder.state.hint?.id === id ? reorder.state.hint.place : null,
+            onPointerDown: (event) => reorder.start(id, event),
           }
         : null;
+    const active =
+      activeThreadId !== null && (id === activeThreadId || chat.children.some((child) => child.id === activeThreadId));
     return (
       <ChatRow
-        key={row.thread.id}
-        row={row}
-        active={
-          activeThreadId !== null &&
-          (row.thread.id === activeThreadId || row.children.some((child) => child.id === activeThreadId))
-        }
+        key={id}
+        row={chat}
+        active={active}
         now={now}
-        provider={providerById.get(row.thread.providerId) ?? null}
-        showProject={!inProjectFolder && !grouped}
-        showHost={(hosts?.length ?? 0) > 1}
+        provider={providerById.get(chat.thread.providerId) ?? null}
+        showProject={showProject}
+        showHost={showHost}
         drag={drag}
         onOpen={open}
       />
@@ -411,17 +240,8 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
         : activeFolder === "attention"
           ? t("list.emptyAttention")
           : t("list.empty");
-
-  const quietButton =
-    hiddenQuiet > 0 ? (
-      <button
-        type="button"
-        onClick={() => setShowQuiet(true)}
-        className="mx-auto mt-1 block cursor-pointer rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
-      >
-        {t("list.hiddenQuiet", { count: hiddenQuiet })}
-      </button>
-    ) : null;
+  const note = (text: string) => <p className="px-3 py-6 text-center text-xs text-muted-foreground">{text}</p>;
+  const newChat = <NewChatButton folder={currentFolder} projects={projectsInUse} onNavigate={onNavigate} />;
 
   return (
     <ProjectColorsProvider projects={projectsInUse}>
@@ -437,73 +257,45 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
         {rail ? (
           <FolderRail
             folders={folders}
-            rows={rows}
+            rows={chats}
             active={activeFolder}
-            height={viewportHeight}
+            height={scrollArea.viewportHeight}
             onSelect={setFolder}
-            top={<NewChatButton folder={currentFolder} projects={projectsInUse} onNavigate={onNavigate} />}
+            top={newChat}
           />
         ) : null}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div ref={topSentinelRef} className="-mb-px h-px" aria-hidden="true" />
+          <div ref={paging.topRef} className="-mb-px h-px" aria-hidden="true" />
           <div ref={topRef} className="sticky top-0 z-10 bg-sidebar pt-1">
             <div className="flex items-center gap-1.5 px-2 pb-2">
-              <div className="relative min-w-0 flex-1">
-                <Icon
-                  name="Search"
-                  className="pointer-events-none absolute left-2.5 top-[7px] size-3.5 text-muted-foreground"
-                />
-                <Input
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") {
-                      if (query !== "") event.stopPropagation();
-                      setQuery("");
-                    }
-                    if (event.key === "Enter" && shown[0] !== undefined) open(shown[0].thread.id, false);
-                    if (event.key === "ArrowDown") {
-                      event.preventDefault();
-                      focusRow(listRef.current, null, "first");
-                    }
-                  }}
-                  placeholder={t("search.placeholder")}
-                  aria-label={t("search.label")}
-                  className="h-7 rounded-full border-transparent bg-sidebar-accent/70 pl-7 pr-7 text-xs shadow-none [&::-webkit-search-cancel-button]:hidden"
-                />
-                {query !== "" ? (
-                  <button
-                    type="button"
-                    aria-label={t("search.clear")}
-                    onClick={() => setQuery("")}
-                    className="absolute right-1.5 top-[5px] grid size-[18px] cursor-pointer place-items-center rounded-full text-muted-foreground hover:text-foreground"
-                  >
-                    <Icon name="X" className="size-3" />
-                  </button>
-                ) : null}
-              </div>
-              {rail ? null : (
-                <NewChatButton folder={currentFolder} projects={projectsInUse} onNavigate={onNavigate} />
-              )}
+              <SearchBar
+                query={query}
+                onChange={setQuery}
+                onSubmit={() => {
+                  if (shown[0] !== undefined) open(shown[0].thread.id, false);
+                }}
+                onArrowDown={() => focusRow(listRef.current, null, "first")}
+              />
+              {rail ? null : newChat}
             </div>
-            {rail ? null : (
-              <FolderTabs folders={folders} rows={rows} active={activeFolder} onSelect={setFolder} />
-            )}
+            {rail ? null : <FolderTabs folders={folders} rows={chats} active={activeFolder} onSelect={setFolder} />}
           </div>
 
-          <div ref={listRef} aria-label={t("list.label")} role="region" onKeyDown={onListKeyDown} className="px-1.5 pb-2">
+          <div
+            ref={listRef}
+            role="region"
+            aria-label={t("list.label")}
+            onKeyDown={onListKeyDown}
+            className="px-1.5 pb-2"
+          >
             {status === "loading" ? (
-              <p className="px-3 py-6 text-center text-xs text-muted-foreground">{t("list.loading")}</p>
-            ) : status === "error" && rows.length === 0 ? (
-              <p className="px-3 py-6 text-center text-xs text-muted-foreground">{t("list.error")}</p>
+              note(t("list.loading"))
+            ) : status === "error" && chats.length === 0 ? (
+              note(t("list.error"))
             ) : shown.length === 0 ? (
-              <>
-                <p className="px-3 py-6 text-center text-xs text-muted-foreground">{emptyText}</p>
-                {quietButton}
-              </>
+              note(emptyText)
             ) : grouped ? (
-              groupByProject(visible, projects as readonly PluginSidebarProject[]).map((group) => (
+              groupByProject(visible, projects).map((group) => (
                 <section key={group.key} className="mb-1">
                   <GroupHeader
                     group={group}
@@ -511,14 +303,22 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
                     sticky={settings.stickyHeadings}
                     onToggle={() => toggleGroup(group.key)}
                   />
-                  {collapsed.has(group.key) ? null : <ul className="space-y-px">{group.rows.map(renderRow)}</ul>}
+                  {collapsed.has(group.key) ? null : <ul className="space-y-px">{group.chats.map(renderRow)}</ul>}
                 </section>
               ))
             ) : (
               <ul className="space-y-px">{visible.map(renderRow)}</ul>
             )}
-            {visible.length < shown.length ? <div ref={sentinelRef} className="h-8" aria-hidden="true" /> : null}
-            {shown.length > 0 ? quietButton : null}
+            {paging.hasMore ? <div ref={paging.endRef} className="h-8" aria-hidden="true" /> : null}
+            {hiddenQuiet > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowQuiet(true)}
+                className="mx-auto mt-1 block cursor-pointer rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+              >
+                {t("list.hiddenQuiet", { count: hiddenQuiet })}
+              </button>
+            ) : null}
             {archiveMode && archivePages?.hasNextPage ? (
               <button
                 type="button"
@@ -531,21 +331,10 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
             ) : null}
           </div>
 
-          {/* Sticks to the bottom of bb's scroll area; zero height, so it adds no space. */}
-          <div className="pointer-events-none sticky bottom-0 z-10 h-0">
-            <button
-              type="button"
-              aria-label={t("list.toTop")}
-              title={t("list.toTop")}
-              tabIndex={farFromTop ? 0 : -1}
-              aria-hidden={!farFromTop}
-              onClick={scrollToTop}
-              data-visible={farFromTop && reorder.state.dragging === null ? "" : undefined}
-              className="chat-to-top absolute bottom-3 right-3 grid size-8 cursor-pointer place-items-center rounded-full border border-sidebar-border bg-sidebar text-muted-foreground shadow-md outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Icon name="ArrowUp" className="size-4" />
-            </button>
-          </div>
+          <BackToTop
+            visible={scrollArea.farFromTop && reorder.state.dragging === null}
+            onClick={scrollArea.scrollToTop}
+          />
         </div>
       </div>
     </ProjectColorsProvider>

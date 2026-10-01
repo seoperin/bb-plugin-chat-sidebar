@@ -1,97 +1,12 @@
 // Folder tabs above the list: All, Attention, projects, sections, Archive.
-// The strip scrolls sideways (a mouse wheel scrolls it too) and keeps the
-// active tab in view. Right-click a tab to read everything in it or, for a
-// project, start a new chat there.
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { toast } from "sonner";
-import { experimental_useSidebarThreadActions } from "@get-bb/plugin-sdk/app";
+// The strip scrolls sideways (a mouse wheel scrolls it too), fades an edge
+// while there is more that way, and keeps the active tab in view.
+import { useEffect, useRef, useState } from "react";
 
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import { Icon } from "@/components/ui/icon";
-import type { MessageKey } from "@/lib/i18n";
-import { unreadIdsIn, type ChatRow, type Folder, type FolderId } from "@/lib/model";
+import type { Chat, Folder, FolderId } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { useT } from "./chat-context";
-import { ProjectColorSubmenu } from "./project-colors";
-
-const BUILT_IN: Partial<Record<FolderId, MessageKey>> = {
-  all: "folder.all",
-  attention: "folder.attention",
-  archive: "folder.archive",
-};
-
-export function useFolderLabel() {
-  const t = useT();
-  return (folder: Pick<Folder, "id" | "name" | "personal">): string => {
-    const key = BUILT_IN[folder.id];
-    if (key !== undefined) return t(key);
-    if (folder.personal) return t("folder.personal");
-    return folder.name ?? "";
-  };
-}
-
-/** Mark every unread thread in a folder as read, like Telegram's "Mark as read". */
-export function useMarkFolderRead(rows: readonly ChatRow[]) {
-  const t = useT();
-  const actions = experimental_useSidebarThreadActions();
-  return async (folder: FolderId) => {
-    const ids = unreadIdsIn(rows, folder);
-    if (ids.length === 0) return;
-    const results = await Promise.allSettled(ids.map((id) => actions.setRead(id, true)));
-    const failed = results.filter((result) => result.status === "rejected").length;
-    if (failed > 0) toast.error(t("toast.markReadFailed", { failed, total: ids.length }));
-  };
-}
-
-/** Right-click menu of a folder: read everything, start a chat, colour a project. */
-export function FolderMenu({
-  folder,
-  rows,
-  children,
-}: {
-  folder: Folder;
-  rows: readonly ChatRow[];
-  children: ReactNode;
-}) {
-  const t = useT();
-  const markRead = useMarkFolderRead(rows);
-  const actions = experimental_useSidebarThreadActions();
-  const unread = unreadIdsIn(rows, folder.id).length;
-  const projectId = folder.id.startsWith("project:") ? folder.id.slice("project:".length) : null;
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <ContextMenuContent className="min-w-52">
-        <ContextMenuItem disabled={unread === 0} onSelect={() => void markRead(folder.id)}>
-          <Icon name="Check" />
-          {unread === 0 ? t("folder.allRead") : t("folder.markRead", { count: unread })}
-        </ContextMenuItem>
-        {projectId !== null ? (
-          <ContextMenuItem onSelect={() => actions.openNewThread({ projectId, focusPrompt: true })}>
-            <Icon name="MessageSquarePlus" />
-            {t("folder.newChat")}
-          </ContextMenuItem>
-        ) : null}
-        {projectId !== null ? <ProjectColorSubmenu projectId={projectId} /> : null}
-        {folder.id.startsWith("section:") ? (
-          <ContextMenuItem
-            onSelect={() =>
-              actions.openNewThread({ sectionId: folder.id.slice("section:".length), focusPrompt: true })
-            }
-          >
-            <Icon name="MessageSquarePlus" />
-            {t("folder.newChatSection")}
-          </ContextMenuItem>
-        ) : null}
-      </ContextMenuContent>
-    </ContextMenu>
-  );
-}
+import { FolderMenu, useFolderLabel } from "./folder-menu";
 
 export function FolderTabs({
   folders,
@@ -100,7 +15,7 @@ export function FolderTabs({
   onSelect,
 }: {
   folders: readonly Folder[];
-  rows: readonly ChatRow[];
+  rows: readonly Chat[];
   active: FolderId;
   onSelect: (id: FolderId) => void;
 }) {

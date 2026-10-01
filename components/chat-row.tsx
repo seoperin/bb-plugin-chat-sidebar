@@ -13,9 +13,8 @@ import {
 } from "@get-bb/plugin-sdk/app";
 
 import { Icon } from "@/components/ui/icon";
-import type { ChatRow as ChatRowModel } from "@/lib/model";
 import { avatarBackground } from "@/lib/colors";
-import { avatarLetter } from "@/lib/model";
+import { avatarLetter, type Chat } from "@/lib/model";
 import { statusMessage } from "@/lib/status";
 import { formatChatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -34,7 +33,7 @@ export interface RowDrag {
   onPointerDown: (event: PointerEvent<HTMLElement>) => void;
 }
 
-function Avatar({ row, size }: { row: ChatRowModel; size: "md" | "sm" }) {
+function Avatar({ row, size }: { row: Chat; size: "md" | "sm" }) {
   const color = useProjectColors().colorOf(row.project?.id ?? null, row.thread.id);
   const busy = row.lane === "working" || row.lane === "attention";
   return (
@@ -60,7 +59,7 @@ function Avatar({ row, size }: { row: ChatRowModel; size: "md" | "sm" }) {
 }
 
 /** Status first, then another plugin's row status, then the draft marker. */
-function StatusBadge({ row, active }: { row: ChatRowModel; active: boolean }) {
+function StatusBadge({ row, active }: { row: Chat; active: boolean }) {
   const { t } = useChat().i18n;
   const { thread, lane } = row;
   const rowStatus = useSidebarThreadRowStatus(thread.id);
@@ -121,7 +120,7 @@ function WhereLine({
   showProject,
   showHost,
 }: {
-  row: ChatRowModel;
+  row: Chat;
   provider: ProviderSummary | null;
   showProject: boolean;
   showHost: boolean;
@@ -142,7 +141,7 @@ function WhereLine({
   );
 }
 
-function TimeOrShortcut({ row, now }: { row: ChatRowModel; now: number }) {
+function TimeOrShortcut({ row, now }: { row: Chat; now: number }) {
   const { i18n } = useChat();
   const shortcut = useSidebarThreadShortcut(row.thread.id);
   if (shortcut !== null) {
@@ -174,7 +173,7 @@ export function ChatRow({
   drag,
   onOpen,
 }: {
-  row: ChatRowModel;
+  row: Chat;
   active: boolean;
   now: number;
   provider: ProviderSummary | null;

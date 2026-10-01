@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Icon } from "@/components/ui/icon";
 import {
+  COLORS_CHANNEL,
   PALETTE,
   assignProjectColors,
   colorForKey,
@@ -22,7 +23,7 @@ import {
   type PaletteColor,
 } from "@/lib/colors";
 import type { MessageKey } from "@/lib/i18n";
-import { COLORS_CHANNEL, type ProjectColorMap, type rpcContract } from "@/lib/rpc";
+import type { ProjectColorMap, rpcContract } from "@/lib/rpc";
 import { useT } from "./chat-context";
 
 interface ProjectColorsValue {

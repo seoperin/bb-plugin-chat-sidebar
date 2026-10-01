@@ -2,7 +2,7 @@
 // drag and drop: bb's split drag listens to the same pointer stream and takes
 // over once the pointer leaves the sidebar, so the two gestures coexist. A
 // native drag would swallow those events and break splitting.
-import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 
 const THRESHOLD_PX = 5;
 
@@ -19,7 +19,7 @@ interface Pending {
 }
 
 export function usePinReorder(
-  listRef: React.RefObject<HTMLElement | null>,
+  listRef: RefObject<HTMLElement | null>,
   onDrop: (dragged: string, target: string, place: "before" | "after") => void,
 ) {
   const [state, setState] = useState<PinDragState>({ dragging: null, hint: null });
