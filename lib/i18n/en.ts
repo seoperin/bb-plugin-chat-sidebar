@@ -76,6 +76,10 @@ export const en = {
   // Time
   "time.yesterday": "Yesterday",
 
+  "newChat.label": "New chat",
+  "newChat.in": "New chat in {name}",
+  "newChat.pick": "New chat in…",
+
   // Menu
   "menu.open": "Open",
   "menu.openSplit": "Open in split",

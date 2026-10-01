@@ -36,6 +36,7 @@ import { ChatProvider, useChat } from "./chat-context";
 import { ChatRow, type ProviderSummary, type RowDrag } from "./chat-row";
 import { FolderRail } from "./folder-rail";
 import { FolderTabs } from "./folder-tabs";
+import { NewChatButton } from "./new-chat-button";
 import { ProjectColorSubmenu, ProjectColorsProvider } from "./project-colors";
 import { usePinReorder } from "./use-pin-reorder";
 
@@ -248,6 +249,7 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
     [rows, projects, sections, settings.projects, settings.sectionFolders, settings.archiveFolder],
   );
   const activeFolder: FolderId = folders.some((item) => item.id === folder) ? folder : "all";
+  const currentFolder = folders.find((item) => item.id === activeFolder) ?? null;
 
   // Pinned order is global across folders. Until bb sends the new order back,
   // show the one we asked for.
@@ -439,45 +441,51 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
             active={activeFolder}
             height={viewportHeight}
             onSelect={setFolder}
+            top={<NewChatButton folder={currentFolder} projects={projectsInUse} onNavigate={onNavigate} />}
           />
         ) : null}
         <div className="flex min-w-0 flex-1 flex-col">
           <div ref={topSentinelRef} className="-mb-px h-px" aria-hidden="true" />
           <div ref={topRef} className="sticky top-0 z-10 bg-sidebar pt-1">
-            <div className="relative px-2 pb-2">
-              <Icon
-                name="Search"
-                className="pointer-events-none absolute left-4 top-[7px] size-3.5 text-muted-foreground"
-              />
-              <Input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    if (query !== "") event.stopPropagation();
-                    setQuery("");
-                  }
-                  if (event.key === "Enter" && shown[0] !== undefined) open(shown[0].thread.id, false);
-                  if (event.key === "ArrowDown") {
-                    event.preventDefault();
-                    focusRow(listRef.current, null, "first");
-                  }
-                }}
-                placeholder={t("search.placeholder")}
-                aria-label={t("search.label")}
-                className="h-7 rounded-full border-transparent bg-sidebar-accent/70 pl-7 pr-7 text-xs shadow-none [&::-webkit-search-cancel-button]:hidden"
-              />
-              {query !== "" ? (
-                <button
-                  type="button"
-                  aria-label={t("search.clear")}
-                  onClick={() => setQuery("")}
-                  className="absolute right-3.5 top-[5px] grid size-[18px] cursor-pointer place-items-center rounded-full text-muted-foreground hover:text-foreground"
-                >
-                  <Icon name="X" className="size-3" />
-                </button>
-              ) : null}
+            <div className="flex items-center gap-1.5 px-2 pb-2">
+              <div className="relative min-w-0 flex-1">
+                <Icon
+                  name="Search"
+                  className="pointer-events-none absolute left-2.5 top-[7px] size-3.5 text-muted-foreground"
+                />
+                <Input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      if (query !== "") event.stopPropagation();
+                      setQuery("");
+                    }
+                    if (event.key === "Enter" && shown[0] !== undefined) open(shown[0].thread.id, false);
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      focusRow(listRef.current, null, "first");
+                    }
+                  }}
+                  placeholder={t("search.placeholder")}
+                  aria-label={t("search.label")}
+                  className="h-7 rounded-full border-transparent bg-sidebar-accent/70 pl-7 pr-7 text-xs shadow-none [&::-webkit-search-cancel-button]:hidden"
+                />
+                {query !== "" ? (
+                  <button
+                    type="button"
+                    aria-label={t("search.clear")}
+                    onClick={() => setQuery("")}
+                    className="absolute right-1.5 top-[5px] grid size-[18px] cursor-pointer place-items-center rounded-full text-muted-foreground hover:text-foreground"
+                  >
+                    <Icon name="X" className="size-3" />
+                  </button>
+                ) : null}
+              </div>
+              {rail ? null : (
+                <NewChatButton folder={currentFolder} projects={projectsInUse} onNavigate={onNavigate} />
+              )}
             </div>
             {rail ? null : (
               <FolderTabs folders={folders} rows={rows} active={activeFolder} onSelect={setFolder} />

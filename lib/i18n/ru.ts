@@ -75,6 +75,10 @@ export const ru: Messages = {
 
   "time.yesterday": "Вчера",
 
+  "newChat.label": "Новый чат",
+  "newChat.in": "Новый чат в {name}",
+  "newChat.pick": "Новый чат в…",
+
   "menu.open": "Открыть",
   "menu.openSplit": "Открыть справа",
   "menu.splitHint": "{key} клик",

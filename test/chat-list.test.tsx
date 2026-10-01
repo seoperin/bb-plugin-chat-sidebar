@@ -91,6 +91,18 @@ describe("chat list", () => {
     expect(screen.getByText("Nothing matches “zzz”")).toBeTruthy();
   });
 
+  it("starts a new chat in the open project's folder", async () => {
+    const { view, onNavigate } = await render({ language: "English" });
+    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Beta/ }));
+    fireEvent.click(screen.getByRole("button", { name: "New chat in Beta" }));
+    expect(view.inspection.sidebarActionCalls.filter((call) => call.method === "openNewThread")).toEqual([
+      { method: "openNewThread", options: { focusPrompt: true } },
+      { method: "openNewThread", options: { projectId: "proj_b", focusPrompt: true } },
+    ]);
+    expect(onNavigate).toHaveBeenCalledTimes(2);
+  });
+
   it("speaks the language picked in settings", async () => {
     await render({ language: "Русский" });
     expect(screen.getByRole("searchbox").getAttribute("placeholder")).toBe("Поиск по чатам");
