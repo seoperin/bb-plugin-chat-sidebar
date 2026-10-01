@@ -292,6 +292,21 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [visible.length, shown.length]);
+  // "Back to top" shows once the list is scrolled about a screen down.
+  const [farFromTop, setFarFromTop] = useState(false);
+  useEffect(() => {
+    const scroller = scrollParentOf(topSentinelRef.current);
+    if (scroller === null) return;
+    const update = () => setFarFromTop(scroller.scrollTop > scroller.clientHeight * 0.8);
+    update();
+    scroller.addEventListener("scroll", update, { passive: true });
+    return () => scroller.removeEventListener("scroll", update);
+  }, []);
+  const scrollToTop = () => {
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    scrollParentOf(topSentinelRef.current)?.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  };
+
   const paged = limit > PAGE_SIZE;
   useEffect(() => {
     const sentinel = topSentinelRef.current;
@@ -463,6 +478,22 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
             {archivePages.isFetchingNextPage ? t("list.loadingMore") : t("list.loadMore")}
           </button>
         ) : null}
+      </div>
+
+      {/* Sticks to the bottom of bb's scroll area; zero height, so it adds no space. */}
+      <div className="pointer-events-none sticky bottom-0 z-10 h-0">
+        <button
+          type="button"
+          aria-label={t("list.toTop")}
+          title={t("list.toTop")}
+          tabIndex={farFromTop ? 0 : -1}
+          aria-hidden={!farFromTop}
+          onClick={scrollToTop}
+          data-visible={farFromTop && reorder.state.dragging === null ? "" : undefined}
+          className="chat-to-top absolute bottom-3 right-3 grid size-8 cursor-pointer place-items-center rounded-full border border-sidebar-border bg-sidebar text-muted-foreground shadow-md outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Icon name="ArrowUp" className="size-4" />
+        </button>
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ export const ru: Messages = {
   "list.archiveEmpty": "Архив пуст",
   "list.archiveLoading": "Загружаю архив…",
   "list.loadMore": "Показать ещё",
+  "list.toTop": "Наверх",
   "list.loadingMore": "Загружаю…",
   "list.hiddenQuiet": {
     one: "Скрыт {count} спокойный чат · показать",

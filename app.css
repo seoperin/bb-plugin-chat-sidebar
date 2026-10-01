@@ -97,7 +97,27 @@
   bottom: -1px;
 }
 
+/* "Back to top" fades and rises in once the list is scrolled down. */
+.chat-to-top {
+  opacity: 0;
+  transform: translateY(6px) scale(0.92);
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 120ms ease,
+    color 120ms ease;
+}
+.chat-to-top[data-visible] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .chat-to-top {
+    transition: none;
+  }
   .chat-spinner,
   .chat-pulse::after {
     animation: none;

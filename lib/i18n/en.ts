@@ -40,6 +40,7 @@ export const en = {
   "list.archiveEmpty": "The archive is empty",
   "list.archiveLoading": "Loading the archive…",
   "list.loadMore": "Show more",
+  "list.toTop": "Back to top",
   "list.loadingMore": "Loading…",
   "list.hiddenQuiet": {
     one: "{count} quiet chat hidden · Show",
