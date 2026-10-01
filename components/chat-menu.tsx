@@ -24,6 +24,7 @@ import { Icon } from "@/components/ui/icon";
 import type { ChatRow } from "@/lib/model";
 import { laneOf } from "@/lib/status";
 import { useT } from "./chat-context";
+import { ProjectColorSubmenu } from "./project-colors";
 
 const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 const MAX_SUB_AGENTS = 8;
@@ -134,6 +135,7 @@ export function ChatMenu({
             {t("menu.newChat")}
           </ContextMenuItem>
         ) : null}
+        {row.project !== null ? <ProjectColorSubmenu projectId={row.project.id} /> : null}
         <ContextMenuSeparator />
         {thread.isArchived ? (
           <ContextMenuItem

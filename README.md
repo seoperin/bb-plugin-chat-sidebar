@@ -40,8 +40,10 @@ bb plugin config chat-sidebar unset language           # back to Auto
 | `foldChildren` | boolean: sub-agents and forks share the parent's row | `true` |
 | `hideQuietAfterDays` | days, `0` = never | `0` |
 
-The browser remembers the selected tab and collapsed project headings
-(localStorage). Nothing else is stored, and nothing is sent anywhere.
+Project colours picked from a right-click menu are stored in the plugin's
+key-value storage in bb (`project-colors`), so they follow you across devices
+and update live through realtime. The browser remembers the selected tab and
+collapsed project headings (localStorage). Nothing is sent anywhere else.
 
 ## How it works
 
@@ -64,7 +66,11 @@ The browser remembers the selected tab and collapsed project headings
 - `components/use-pin-reorder.ts` reorders pins with pointer events, not HTML
   drag and drop. bb's split drag listens to the same pointer stream and takes
   over once the pointer leaves the sidebar.
-- `server.ts` only declares the settings.
+- `lib/colors.ts` holds the 12-colour palette and the automatic assignment:
+  the clearest colours first, distinct while any is free, and the user's pick
+  always wins. Only projects that have chats count.
+- `server.ts` declares the settings and keeps the picked colours (`lib/rpc.ts`
+  is the contract). Writes are serialised and published to every client.
 
 Manifest strings and setting labels are in English because bb renders them
 as written. Everything inside the list is translated.

@@ -38,7 +38,15 @@ async function render(settings: Record<string, string | number | boolean> = {}) 
   const view = renderSlot(
     registration,
     { activeThreadId: null, activeProjectId: null, isCompactViewport: false, onNavigate, searchQuery: "" },
-    { sidebarThreads: { status: "ready", threads, projects, sections: [] }, settings },
+    {
+      sidebarThreads: { status: "ready", threads, projects, sections: [] },
+      settings,
+      rpc: { colors_get: () => ({ proj_b: "pink" }), colors_set: (input) => {
+          const { projectId, color } = input as { projectId: string; color: string | null };
+          return color === null ? {} : { [projectId]: color };
+        },
+      },
+    },
   );
   return { view, onNavigate };
 }

@@ -14,12 +14,14 @@ import {
 
 import { Icon } from "@/components/ui/icon";
 import type { ChatRow as ChatRowModel } from "@/lib/model";
-import { avatarOf } from "@/lib/model";
+import { avatarBackground } from "@/lib/colors";
+import { avatarLetter } from "@/lib/model";
 import { statusMessage } from "@/lib/status";
 import { formatChatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { useChat } from "./chat-context";
 import { ChatMenu } from "./chat-menu";
+import { useProjectColors } from "./project-colors";
 import { RenameInput } from "./rename-input";
 
 export type ProviderSummary = ReturnType<typeof experimental_useProviders>["providers"][number];
@@ -33,7 +35,7 @@ export interface RowDrag {
 }
 
 function Avatar({ row, size }: { row: ChatRowModel; size: "md" | "sm" }) {
-  const { letter, hue } = avatarOf(row);
+  const color = useProjectColors().colorOf(row.project?.id ?? null, row.thread.id);
   const busy = row.lane === "working" || row.lane === "attention";
   return (
     <span
@@ -42,11 +44,9 @@ function Avatar({ row, size }: { row: ChatRowModel; size: "md" | "sm" }) {
         "relative grid shrink-0 place-items-center rounded-full font-semibold text-white",
         size === "md" ? "size-8 text-[13px]" : "size-5 text-[10px]",
       )}
-      style={{
-        background: `linear-gradient(135deg, hsl(${hue} 55% 52%), hsl(${(hue + 32) % 360} 60% 42%))`,
-      }}
+      style={{ background: avatarBackground(color) }}
     >
-      {letter}
+      {avatarLetter(row)}
       {busy ? (
         <span
           data-lane={row.lane ?? undefined}

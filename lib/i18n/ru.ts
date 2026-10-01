@@ -90,6 +90,22 @@ export const ru: Messages = {
   "menu.newChat": "Новый чат в проекте",
   "menu.subAgents": "Субагенты",
 
+  // Colours
+  "color.menu": "Цвет проекта",
+  "color.auto": "Автоматически",
+  "color.red": "Красный",
+  "color.orange": "Оранжевый",
+  "color.amber": "Янтарный",
+  "color.lime": "Лаймовый",
+  "color.green": "Зелёный",
+  "color.teal": "Бирюзовый",
+  "color.cyan": "Голубой",
+  "color.blue": "Синий",
+  "color.indigo": "Индиго",
+  "color.violet": "Фиолетовый",
+  "color.magenta": "Пурпурный",
+  "color.pink": "Розовый",
+
   "rename.label": "Название чата",
 
   "toast.linkCopied": "Ссылка скопирована",
@@ -100,5 +116,6 @@ export const ru: Messages = {
   "toast.renameFailed": "Не удалось переименовать чат",
   "toast.unarchiveFailed": "Не удалось вернуть чат из архива",
   "toast.reorderFailed": "Не удалось переставить чат",
+  "toast.colorFailed": "Не удалось сменить цвет",
   "toast.markReadFailed": "Не удалось отметить {failed} из {total}",
 };

@@ -93,6 +93,22 @@ export const en = {
   "menu.subAgents": "Sub-agents",
 
   // Rename
+  // Colours
+  "color.menu": "Project colour",
+  "color.auto": "Automatic",
+  "color.red": "Red",
+  "color.orange": "Orange",
+  "color.amber": "Amber",
+  "color.lime": "Lime",
+  "color.green": "Green",
+  "color.teal": "Teal",
+  "color.cyan": "Cyan",
+  "color.blue": "Blue",
+  "color.indigo": "Indigo",
+  "color.violet": "Violet",
+  "color.magenta": "Magenta",
+  "color.pink": "Pink",
+
   "rename.label": "Chat title",
 
   // Toasts
@@ -104,6 +120,7 @@ export const en = {
   "toast.renameFailed": "Couldn't rename the chat",
   "toast.unarchiveFailed": "Couldn't restore the chat",
   "toast.reorderFailed": "Couldn't move the chat",
+  "toast.colorFailed": "Couldn't change the colour",
   "toast.markReadFailed": "Couldn't mark {failed} of {total} as read",
 } satisfies Record<string, string | PluralForms>;
 

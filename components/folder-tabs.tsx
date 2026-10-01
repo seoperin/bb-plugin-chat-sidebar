@@ -17,6 +17,7 @@ import type { MessageKey } from "@/lib/i18n";
 import { unreadIdsIn, type ChatRow, type Folder, type FolderId } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { useT } from "./chat-context";
+import { ProjectColorSubmenu } from "./project-colors";
 
 const BUILT_IN: Partial<Record<FolderId, MessageKey>> = {
   all: "folder.all",
@@ -165,6 +166,7 @@ export function FolderTabs({
                   {t("folder.newChat")}
                 </ContextMenuItem>
               ) : null}
+              {projectId !== null ? <ProjectColorSubmenu projectId={projectId} /> : null}
               {folder.id.startsWith("section:") ? (
                 <ContextMenuItem
                   onSelect={() =>

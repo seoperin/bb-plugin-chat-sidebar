@@ -293,12 +293,12 @@ export function isQuiet(row: ChatRow, cutoff: number): boolean {
   return row.lane === null && !row.unread && !row.thread.isPinned && row.activityAt < cutoff;
 }
 
-/** Letter and hue for a row's avatar — stable per project so it is recognisable. */
-export function avatarOf(row: ChatRow): { letter: string; hue: number } {
-  const name = row.project && !row.project.isPersonal ? row.project.name : row.thread.displayTitle;
-  const letter = (name.trim().match(/[\p{L}\p{N}]/u)?.[0] ?? "•").toLocaleUpperCase();
-  const key = row.project?.id ?? row.thread.id;
-  let hash = 0;
-  for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return { letter, hue: hash % 360 };
+/** The first letter or digit of a name, for avatars. */
+export function initialOf(name: string): string {
+  return (name.trim().match(/[\p{L}\p{N}]/u)?.[0] ?? "•").toLocaleUpperCase();
+}
+
+/** A row's avatar letter: the project's, or the chat's own in the personal project. */
+export function avatarLetter(row: ChatRow): string {
+  return initialOf(row.project && !row.project.isPersonal ? row.project.name : row.thread.displayTitle);
 }
