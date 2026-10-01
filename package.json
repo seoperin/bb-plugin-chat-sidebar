@@ -1,0 +1,70 @@
+{
+  "name": "bb-plugin-chat-sidebar",
+  "version": "0.1.0",
+  "description": "Read your threads like a messenger: one row per task with live status, an Attention folder, project tabs, and search.",
+  "license": "MIT",
+  "author": "Evgeniy Perin",
+  "keywords": [
+    "bb",
+    "bb-plugin",
+    "sidebar",
+    "chats",
+    "threads",
+    "messenger"
+  ],
+  "type": "module",
+  "engines": {
+    "bb": ">=0.44",
+    "bbPluginSdk": ">=0.5.29"
+  },
+  "bb": {
+    "name": "Chat Sidebar",
+    "description": "Read your threads like a messenger: one row per task with live status, an Attention folder, project tabs, and search.",
+    "branding": {
+      "icon": "./assets/icon.svg"
+    },
+    "server": "./server.ts",
+    "app": "./app.tsx"
+  },
+  "files": [
+    "dist/server.js",
+    "dist/server.meta.json",
+    "dist/app.js",
+    "dist/app.meta.json",
+    "dist/app.css",
+    "assets/",
+    "README.md",
+    "PLUGIN_OVERVIEW.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "server.ts",
+    "app.tsx",
+    "app.css",
+    "components/",
+    "lib/"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "bb plugin build",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@get-bb/plugin-sdk": "0.5.29",
+    "@radix-ui/react-context-menu": "^2.3.3",
+    "@testing-library/react": "^16.3.3",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "clsx": "^2.1.1",
+    "hono": "^4.13.12",
+    "jsdom": "^30.1.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sonner": "^1.7.4",
+    "tailwind-merge": "^3.4.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

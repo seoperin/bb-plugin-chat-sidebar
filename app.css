@@ -1,0 +1,110 @@
+/* Colour does one job here: it says what an agent is doing. One hue per
+ * lane, mixed into currentColor for text so it reads in light and dark
+ * themes alike; everything else stays on bb's theme tokens. */
+.chat-sidebar {
+  --chat-attention: #e8a317;
+  --chat-working: #3987e5;
+  --chat-done: #1f9d55;
+  --chat-error: #e5484d;
+}
+.chat-sidebar [data-lane="attention"],
+[data-bb-plugin="chat-sidebar"] [data-lane="attention"] {
+  --chat-lane: var(--chat-attention, #e8a317);
+}
+.chat-sidebar [data-lane="working"],
+[data-bb-plugin="chat-sidebar"] [data-lane="working"] {
+  --chat-lane: var(--chat-working, #3987e5);
+}
+.chat-sidebar [data-lane="done"],
+[data-bb-plugin="chat-sidebar"] [data-lane="done"] {
+  --chat-lane: var(--chat-done, #1f9d55);
+}
+.chat-lane-text {
+  color: color-mix(in oklab, var(--chat-lane) 75%, currentColor);
+}
+.chat-lane-dot {
+  background-color: var(--chat-lane, color-mix(in srgb, currentColor 35%, transparent));
+}
+.chat-unread {
+  background-color: var(--chat-working);
+}
+
+/* Row statuses set by other plugins carry a tone. */
+.chat-tone-text[data-tone="running"] {
+  color: color-mix(in oklab, var(--chat-working) 75%, currentColor);
+}
+.chat-tone-text[data-tone="success"] {
+  color: color-mix(in oklab, var(--chat-done) 75%, currentColor);
+}
+.chat-tone-text[data-tone="error"] {
+  color: color-mix(in oklab, var(--chat-error) 80%, currentColor);
+}
+.chat-tone-text[data-tone="default"] {
+  color: var(--muted-foreground, currentColor);
+}
+
+/* Working: a spinning ring, like bb's own. */
+.chat-spinner {
+  border: 1.5px solid color-mix(in srgb, var(--chat-lane) 30%, transparent);
+  border-top-color: var(--chat-lane);
+  animation: chat-spin 0.9s linear infinite;
+}
+@keyframes chat-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Working and waiting avatars pulse softly. */
+.chat-pulse {
+  position: relative;
+}
+.chat-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--chat-lane);
+  animation: chat-pulse 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes chat-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* Where a dragged pin will land. */
+.chat-drop-before::before,
+.chat-drop-after::after {
+  content: "";
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--chat-working);
+  pointer-events: none;
+}
+.chat-drop-before::before {
+  top: -1px;
+}
+.chat-drop-after::after {
+  bottom: -1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-spinner,
+  .chat-pulse::after {
+    animation: none;
+  }
+}
+
+/* The tab strip fades at the right edge, so it reads as scrollable. */
+.chat-tab-strip {
+  mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+}
