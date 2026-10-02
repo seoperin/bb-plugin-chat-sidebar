@@ -92,7 +92,8 @@ bb plugin config chat-sidebar unset folderLayout        # back to the default
 The plugin makes no network requests of its own and needs no accounts or
 keys. It reads threads through bb's plugin SDK. Project colours are stored in
 the plugin's key-value storage inside bb. The open folder and collapsed
-headings are remembered in the browser's localStorage.
+headings are remembered in the browser's localStorage, along with a copy of
+the project colours so they show before bb answers.
 
 ## Development
 

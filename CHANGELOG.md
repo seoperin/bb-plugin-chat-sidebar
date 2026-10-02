@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- Project colours no longer fall back to automatic ones when bb mounts the
+  list again or the backend answers late. The last colours seen are shown
+  straight away, a failed load is retried, and colours are reloaded after the
+  realtime connection comes back.
+
 ## 0.1.0
 
 First release.
