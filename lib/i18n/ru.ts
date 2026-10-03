@@ -57,7 +57,6 @@ export const ru: Messages = {
   "status.error": "Упал с ошибкой",
   "status.working": "Работает",
   "status.provisioning": "Готовит окружение",
-  "status.hostReconnecting": "Машина переподключается",
   "status.waitingForHost": "Ждёт машину",
   "status.starting": "Запускается",
   "status.stopping": "Останавливается",

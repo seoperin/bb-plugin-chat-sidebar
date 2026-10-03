@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Checked against bb 0.45 and built with its plugin SDK (0.6.15). bb no
+  longer reports the "machine reconnecting" thread status, so the list drops
+  it too. Still works with bb 0.44.
+
 ## 0.1.1
 
 - Project colours no longer fall back to automatic ones when bb mounts the

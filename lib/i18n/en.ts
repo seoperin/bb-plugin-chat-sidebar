@@ -62,7 +62,6 @@ export const en = {
   "status.error": "Stopped with an error",
   "status.working": "Working",
   "status.provisioning": "Preparing the environment",
-  "status.hostReconnecting": "Machine reconnecting",
   "status.waitingForHost": "Waiting for the machine",
   "status.starting": "Starting",
   "status.stopping": "Stopping",

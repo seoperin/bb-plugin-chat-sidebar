@@ -31,7 +31,6 @@ const BUSY_STATUSES = new Set<string>([
   "active",
   "stopping",
   "provisioning",
-  "host-reconnecting",
   "waiting-for-host",
 ]);
 
@@ -67,8 +66,6 @@ export function statusMessage(thread: PluginSidebarThread, lane: Lane): [Message
   switch (thread.runtimeStatus) {
     case "provisioning":
       return ["status.provisioning"];
-    case "host-reconnecting":
-      return ["status.hostReconnecting"];
     case "waiting-for-host":
       return ["status.waitingForHost"];
     case "starting":
