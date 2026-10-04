@@ -53,3 +53,37 @@ describe("palette helpers", () => {
     expect(colorForKey("thr_1")).toBe(colorForKey("thr_1"));
   });
 });
+
+describe("palette additions", () => {
+  const OLD_ORDER = [
+    "red",
+    "orange",
+    "amber",
+    "lime",
+    "green",
+    "teal",
+    "cyan",
+    "blue",
+    "indigo",
+    "violet",
+    "magenta",
+    "pink",
+  ];
+
+  it("keeps every chat without a project on the colour it had", () => {
+    const old = (key: string) => {
+      let value = 0;
+      for (const char of key) value = (value * 31 + char.charCodeAt(0)) >>> 0;
+      return OLD_ORDER[value % OLD_ORDER.length];
+    };
+    for (const key of ["thr_abc", "thr_x1y2z3", "proj_personal", "", "долгий ключ"]) {
+      expect(colorForKey(key).id).toBe(old(key));
+    }
+  });
+
+  it("never hands out the added colours automatically", () => {
+    const ids = Array.from({ length: 40 }, (_, index) => `proj_${index}`);
+    const used = new Set([...assignProjectColors(ids, {}).values()].map((color) => color.id));
+    for (const added of ["yellow", "brown", "slate"]) expect(used.has(added as never)).toBe(false);
+  });
+});

@@ -21,14 +21,17 @@ import {
   type PluginThreadListProps,
 } from "@get-bb/plugin-sdk/app";
 
+import { DndContext } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+
 import { usePaging } from "@/hooks/use-paging";
 import { usePinnedOrder } from "@/hooks/use-pinned-order";
 import { useScrollArea } from "@/hooks/use-scroll-area";
+import { useReorderDnd } from "@/hooks/use-sortable";
 import {
   buildChats,
   buildFolders,
   groupByProject,
-  inFolder,
   isQuiet,
   matchesQuery,
   projectsByUse,
@@ -39,9 +42,11 @@ import { parseStringArray, readStored, writeStored } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { BackToTop } from "./back-to-top";
 import { ChatProvider, useChat } from "./chat-context";
-import { ChatRow, type ProviderSummary, type RowDrag } from "./chat-row";
+import { ChatRow, SortableChatRow, type ProviderSummary } from "./chat-row";
+import { FolderEditor } from "./folder-editor";
 import { FolderRail } from "./folder-rail";
 import { FolderTabs } from "./folder-tabs";
+import { FoldersProvider, useFolders } from "./folders-context";
 import { GroupHeader } from "./group-header";
 import { NewChatButton } from "./new-chat-button";
 import { ProjectColorsProvider } from "./project-colors";
@@ -52,7 +57,9 @@ const DAY = 86_400_000;
 const FOLDER_KEY = "chat-sidebar/folder";
 const COLLAPSED_KEY = "chat-sidebar/collapsed-groups";
 const ACTIVE_ONLY = { experimental_lifecycles: ["active"] } as const;
-const WITH_ARCHIVE = { experimental_lifecycles: ["active", "archived"] } as const;
+const WITH_ARCHIVE = {
+  experimental_lifecycles: ["active", "archived"],
+} as const;
 
 function useNow(intervalMs: number): number {
   const [now, setNow] = useState(() => Date.now());
@@ -93,7 +100,9 @@ function focusRow(container: HTMLElement | null, from: Element | null, step: 1 |
 export function ChatList(props: PluginThreadListProps) {
   return (
     <ChatProvider>
-      <ChatListView {...props} />
+      <FoldersProvider>
+        <ChatListView {...props} />
+      </FoldersProvider>
     </ChatProvider>
   );
 }
@@ -101,11 +110,12 @@ export function ChatList(props: PluginThreadListProps) {
 function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   const { settings, i18n } = useChat();
   const { t } = i18n;
+  const { layout } = useFolders();
   const [folder, setFolderState] = useState<FolderId>(() =>
     readStored<FolderId>(FOLDER_KEY, (raw) => raw as FolderId, "all"),
   );
   // bb sends the archive in pages and only on request: load it while open.
-  const archiveMode = folder === "archive" && settings.archiveFolder;
+  const archiveMode = folder === "archive" && layout.entries.some((entry) => entry.kind === "archive" && !entry.hidden);
   const {
     status,
     threads,
@@ -152,34 +162,37 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   );
   const archivedChats = useMemo(
     () =>
-      archiveMode ? buildChats(threads, projects, { lifecycle: "archived", foldChildren: settings.foldChildren }) : [],
+      archiveMode
+        ? buildChats(threads, projects, {
+            lifecycle: "archived",
+            foldChildren: settings.foldChildren,
+          })
+        : [],
     [archiveMode, threads, projects, settings.foldChildren],
   );
   // Automatic colours go to projects that have chats, so a few busy projects
   // are not pushed into the in-between hues by empty ones.
   const projectsInUse = useMemo(() => projectsByUse(chats, projects), [chats, projects]);
   const folders = useMemo(
-    () =>
-      buildFolders(chats, projects, sections, {
-        projectTabs: settings.projects === "tabs",
-        sectionTabs: settings.sectionFolders,
-        archiveTab: settings.archiveFolder,
-      }),
-    [chats, projects, sections, settings.projects, settings.sectionFolders, settings.archiveFolder],
+    () => buildFolders(chats, projects, sections, layout, now),
+    [chats, projects, sections, layout, now],
   );
   // A remembered folder that no longer exists falls back to All.
   const currentFolder = folders.find((item) => item.id === folder) ?? folders[0] ?? null;
   const activeFolder: FolderId = currentFolder?.id ?? "all";
 
-  const { ordered, reorder } = usePinnedOrder(chats, listRef, t("toast.reorderFailed"));
+  const { ordered, movePin } = usePinnedOrder(chats, t("toast.reorderFailed"));
+  const pinDnd = useReorderDnd({ axis: "vertical", onMove: movePin });
+  const [draggingPin, setDraggingPin] = useState(false);
 
   const needle = query.trim().toLocaleLowerCase();
   const matched = (archiveMode ? archivedChats : ordered).filter(
-    (chat) => (archiveMode || inFolder(chat, activeFolder)) && matchesQuery(chat, needle),
+    (chat) => (archiveMode || currentFolder === null || currentFolder.matches(chat)) && matchesQuery(chat, needle),
   );
   // Quiet old chats hide behind one button; search and Attention see all.
   const cutoff = settings.hideQuietAfterDays > 0 ? now - settings.hideQuietAfterDays * DAY : null;
-  const hidesQuiet = cutoff !== null && !showQuiet && needle === "" && !archiveMode && activeFolder !== "attention";
+  const hidesQuiet =
+    cutoff !== null && !showQuiet && needle === "" && !archiveMode && currentFolder?.kind !== "attention";
   const shown = hidesQuiet ? matched.filter((chat) => !isQuiet(chat, cutoff)) : matched;
   const hiddenQuiet = matched.length - shown.length;
 
@@ -195,30 +208,28 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   const showHost = (hosts?.length ?? 0) > 1;
   const pinDragAllowed = !archiveMode && needle === "";
 
+  const pinnedIds = useMemo(
+    () => (pinDragAllowed ? visible.filter((chat) => chat.thread.isPinned).map((chat) => chat.thread.id) : []),
+    [pinDragAllowed, visible],
+  );
+
   const renderRow = (chat: Chat) => {
     const { id } = chat.thread;
-    const drag: RowDrag | null =
-      pinDragAllowed && chat.thread.isPinned
-        ? {
-            dragging: reorder.state.dragging === id,
-            hint: reorder.state.hint?.id === id ? reorder.state.hint.place : null,
-            onPointerDown: (event) => reorder.start(id, event),
-          }
-        : null;
-    const active =
-      activeThreadId !== null && (id === activeThreadId || chat.children.some((child) => child.id === activeThreadId));
-    return (
-      <ChatRow
-        key={id}
-        row={chat}
-        active={active}
-        now={now}
-        provider={providerById.get(chat.thread.providerId) ?? null}
-        showProject={showProject}
-        showHost={showHost}
-        drag={drag}
-        onOpen={open}
-      />
+    const props = {
+      row: chat,
+      active:
+        activeThreadId !== null &&
+        (id === activeThreadId || chat.children.some((child) => child.id === activeThreadId)),
+      now,
+      provider: providerById.get(chat.thread.providerId) ?? null,
+      showProject,
+      showHost,
+      onOpen: open,
+    };
+    return pinDragAllowed && chat.thread.isPinned ? (
+      <SortableChatRow key={id} {...props} />
+    ) : (
+      <ChatRow key={id} {...props} sortable={null} />
     );
   };
 
@@ -237,7 +248,7 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
         ? archivePages?.status === "loading"
           ? t("list.archiveLoading")
           : t("list.archiveEmpty")
-        : activeFolder === "attention"
+        : currentFolder?.kind === "attention"
           ? t("list.emptyAttention")
           : t("list.empty");
   const note = (text: string) => <p className="px-3 py-6 text-center text-xs text-muted-foreground">{text}</p>;
@@ -250,7 +261,7 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
           // bb's scroll area is a flex column: without shrink-0 the list is
           // squeezed to one screen and the sticky search scrolls away with it.
           "chat-sidebar flex min-h-full shrink-0",
-          reorder.state.dragging !== null && "cursor-grabbing select-none",
+          draggingPin && "select-none",
         )}
         style={{ "--chat-top": `${topHeight}px` } as CSSProperties}
       >
@@ -288,27 +299,45 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
             onKeyDown={onListKeyDown}
             className="px-1.5 pb-2"
           >
-            {status === "loading" ? (
-              note(t("list.loading"))
-            ) : status === "error" && chats.length === 0 ? (
-              note(t("list.error"))
-            ) : shown.length === 0 ? (
-              note(emptyText)
-            ) : grouped ? (
-              groupByProject(visible, projects).map((group) => (
-                <section key={group.key} className="mb-1">
-                  <GroupHeader
-                    group={group}
-                    collapsed={collapsed.has(group.key)}
-                    sticky={settings.stickyHeadings}
-                    onToggle={() => toggleGroup(group.key)}
-                  />
-                  {collapsed.has(group.key) ? null : <ul className="space-y-px">{group.chats.map(renderRow)}</ul>}
-                </section>
-              ))
-            ) : (
-              <ul className="space-y-px">{visible.map(renderRow)}</ul>
-            )}
+            <DndContext
+              {...pinDnd.dndContextProps}
+              onDragStart={(event) => {
+                setDraggingPin(true);
+                pinDnd.dndContextProps.onDragStart?.(event);
+              }}
+              onDragCancel={(event) => {
+                setDraggingPin(false);
+                pinDnd.dndContextProps.onDragCancel?.(event);
+              }}
+              onDragEnd={(event) => {
+                setDraggingPin(false);
+                pinDnd.dndContextProps.onDragEnd?.(event);
+              }}
+            >
+              <SortableContext items={pinnedIds} strategy={verticalListSortingStrategy}>
+                {status === "loading" ? (
+                  note(t("list.loading"))
+                ) : status === "error" && chats.length === 0 ? (
+                  note(t("list.error"))
+                ) : shown.length === 0 ? (
+                  note(emptyText)
+                ) : grouped ? (
+                  groupByProject(visible, projects).map((group) => (
+                    <section key={group.key} className="mb-1">
+                      <GroupHeader
+                        group={group}
+                        collapsed={collapsed.has(group.key)}
+                        sticky={settings.stickyHeadings}
+                        onToggle={() => toggleGroup(group.key)}
+                      />
+                      {collapsed.has(group.key) ? null : <ul className="space-y-px">{group.chats.map(renderRow)}</ul>}
+                    </section>
+                  ))
+                ) : (
+                  <ul className="space-y-px">{visible.map(renderRow)}</ul>
+                )}
+              </SortableContext>
+            </DndContext>
             {paging.hasMore ? <div ref={paging.endRef} className="h-8" aria-hidden="true" /> : null}
             {hiddenQuiet > 0 ? (
               <button
@@ -331,12 +360,10 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
             ) : null}
           </div>
 
-          <BackToTop
-            visible={scrollArea.farFromTop && reorder.state.dragging === null}
-            onClick={scrollArea.scrollToTop}
-          />
+          <BackToTop visible={scrollArea.farFromTop && !draggingPin} onClick={scrollArea.scrollToTop} />
         </div>
       </div>
+      <FolderEditor rows={chats} projects={projectsInUse} sections={sections} now={now} />
     </ProjectColorsProvider>
   );
 }

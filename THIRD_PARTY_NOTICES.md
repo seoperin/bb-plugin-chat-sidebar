@@ -35,3 +35,21 @@ Source: <https://github.com/radix-ui/primitives>
 MIT License, Copyright (c) Luke Edwards (clsx) and Dany Castillo (tailwind-merge).
 
 Both are bundled into `dist/app.js` through `lib/utils.ts`.
+
+## dnd-kit
+
+MIT License, Copyright (c) 2021 Claudéric Demers.
+
+`@dnd-kit/core`, `@dnd-kit/sortable` and `@dnd-kit/utilities` are bundled into
+`dist/app.js` for drag to reorder.
+
+Source: <https://github.com/clauderic/dnd-kit>
+
+## Hugeicons
+
+MIT License, Copyright (c) 2025 Hugeicons.
+
+The folder icons in `assets/icons/` come from `@hugeicons/core-free-icons`
+(4.3.5), the icon family bb draws its own icons with.
+
+Source: <https://github.com/hugeicons/hugeicons>

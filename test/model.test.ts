@@ -4,13 +4,17 @@ import {
   buildChats,
   buildFolders,
   groupByProject,
-  inFolder,
   isQuiet,
   matchesQuery,
+  matchesRule,
   pinNeighbors,
   unreadIdsIn,
 } from "../lib/model";
+import { customEntry, defaultLayout, emptyRule, normalizeLayout, type FolderLayout } from "../lib/folders";
 import { NOW, project, thread } from "./fixtures";
+
+const layoutOf = (projectTabs: boolean, sectionTabs: boolean, archiveTab: boolean): FolderLayout =>
+  defaultLayout({ projects: projectTabs ? "tabs" : "off", sectionFolders: sectionTabs, archiveFolder: archiveTab });
 
 const projects = [project("proj_a", "Alpha"), project("proj_b", "Beta"), project("proj_me", "Personal", true)];
 const ids = (rows: { thread: { id: string } }[]) => rows.map((row) => row.thread.id);
@@ -31,11 +35,9 @@ describe("buildChats", () => {
   });
 
   it("keeps every thread on its own row when folding is off", () => {
-    const rows = buildChats(
-      [thread("root"), thread("child", { parentThreadId: "root" })],
-      projects,
-      { foldChildren: false },
-    );
+    const rows = buildChats([thread("root"), thread("child", { parentThreadId: "root" })], projects, {
+      foldChildren: false,
+    });
     expect(ids(rows).sort()).toEqual(["child", "root"]);
   });
 
@@ -80,11 +82,7 @@ describe("folders", () => {
   ];
 
   it("always shows All and Attention, then projects by use, used sections, and Archive", () => {
-    const folders = buildFolders(rows, projects, sections, {
-      projectTabs: true,
-      sectionTabs: true,
-      archiveTab: true,
-    });
+    const folders = buildFolders(rows, projects, sections, layoutOf(true, true, true), NOW);
     expect(folders.map((folder) => folder.id)).toEqual([
       "all",
       "attention",
@@ -100,16 +98,105 @@ describe("folders", () => {
 
   it("keeps Attention even when nothing needs the user", () => {
     const calm = buildChats([thread("calm")], projects);
-    const folders = buildFolders(calm, projects, [], { projectTabs: false, sectionTabs: false, archiveTab: false });
+    const folders = buildFolders(calm, projects, [], layoutOf(false, false, false), NOW);
     expect(folders.map((folder) => folder.id)).toEqual(["all", "attention"]);
     expect(folders[1]).toMatchObject({ badge: 0, lane: null });
   });
 
   it("filters rows by folder and collects a folder's unread threads", () => {
-    expect(ids(rows.filter((row) => inFolder(row, "attention")))).toEqual(["b1", "a1"]);
-    expect(ids(rows.filter((row) => inFolder(row, "project:proj_a")))).toEqual(["a1", "s1"]);
-    expect(ids(rows.filter((row) => inFolder(row, "section:sec_1")))).toEqual(["s1"]);
-    expect(unreadIdsIn(rows, "all")).toEqual(["a1"]);
+    const folders = buildFolders(rows, projects, sections, layoutOf(true, true, true), NOW);
+    const byId = (id: string) => folders.find((folder) => folder.id === id)!;
+    expect(ids(rows.filter((row) => byId("attention").matches(row)))).toEqual(["b1", "a1"]);
+    expect(ids(rows.filter((row) => byId("project:proj_a").matches(row)))).toEqual(["a1", "s1"]);
+    expect(ids(rows.filter((row) => byId("section:sec_1").matches(row)))).toEqual(["s1"]);
+    expect(unreadIdsIn(rows, byId("all"))).toEqual(["a1"]);
+  });
+
+  it("follows the user's order, drops hidden entries and adds custom folders", () => {
+    const base = layoutOf(true, false, true);
+    const mine = customEntry("Mine", "Star", { projects: ["proj_a"] });
+    const layout = normalizeLayout({
+      version: 1,
+      entries: [
+        base.entries[0]!,
+        mine,
+        ...base.entries.slice(1).map((entry) => (entry.kind === "attention" ? { ...entry, hidden: true } : entry)),
+      ],
+    });
+    const folders = buildFolders(rows, projects, sections, layout, NOW);
+    expect(folders.map((folder) => folder.id)).toEqual([
+      "all",
+      `custom:${mine.id}`,
+      "project:proj_b",
+      "project:proj_a",
+      "archive",
+    ]);
+    expect(folders[1]).toMatchObject({ name: "Mine", icon: "Star", startIn: { projectId: "proj_a" } });
+  });
+});
+
+describe("folder layout", () => {
+  it("derives the old strip from the settings, so nothing changes until the user edits", () => {
+    expect(layoutOf(true, true, true).entries.map((entry) => [entry.kind, entry.hidden])).toEqual([
+      ["all", false],
+      ["attention", false],
+      ["projects", false],
+      ["sections", false],
+      ["archive", false],
+    ]);
+  });
+
+  it("repairs a stored layout: All first, every built-in once, no duplicates", () => {
+    const mine = customEntry("Mine", "Star");
+    const fixed = normalizeLayout({
+      version: 1,
+      entries: [mine, { ...layoutOf(true, true, true).entries[2]! }, mine, { ...mine, id: "all", kind: "custom" }],
+    });
+    expect(fixed.entries.map((entry) => entry.id)).toEqual([
+      "all",
+      mine.id,
+      "projects",
+      "attention",
+      "sections",
+      "archive",
+    ]);
+    expect(fixed.entries[0]?.hidden).toBe(false);
+  });
+});
+
+describe("matchesRule", () => {
+  const chats = buildChats(
+    [
+      thread("wait", { projectId: "proj_a", hasPendingInteraction: true, latestAttentionAt: NOW - 2 * 3_600_000 }),
+      thread("fresh", { projectId: "proj_a", hasPendingInteraction: true, latestAttentionAt: NOW - 60_000 }),
+      thread("err", { projectId: "proj_b", status: "error", updatedAt: NOW }),
+      thread("calm", { projectId: "proj_b", updatedAt: NOW - 10 * 86_400_000 }),
+    ],
+    projects,
+  );
+  const pick = (rule: Partial<ReturnType<typeof emptyRule>>) =>
+    ids(chats.filter((row) => matchesRule(row, { ...emptyRule(), ...rule }, NOW))).sort();
+
+  it("holds nothing without filters or chats", () => {
+    expect(pick({})).toEqual([]);
+  });
+
+  it("combines filters with and, values within one filter with or", () => {
+    expect(pick({ statuses: ["waiting", "failed"] })).toEqual(["err", "fresh", "wait"]);
+    expect(pick({ statuses: ["waiting", "failed"], projects: ["proj_b"] })).toEqual(["err"]);
+  });
+
+  it("waits longer than a threshold", () => {
+    expect(pick({ statuses: ["waiting"], waitingMinutes: 60 })).toEqual(["wait"]);
+  });
+
+  it("keeps chats added by hand and drops chats excluded by hand", () => {
+    expect(pick({ chats: ["calm"] })).toEqual(["calm"]);
+    expect(pick({ projects: ["proj_b"], excludeChats: ["calm"] })).toEqual(["err"]);
+  });
+
+  it("filters by activity since", () => {
+    expect(pick({ projects: ["proj_b"], since: "week" })).toEqual(["err"]);
   });
 });
 
@@ -158,7 +245,18 @@ describe("pinNeighbors", () => {
 describe("search and quiet chats", () => {
   const [row] = buildChats(
     [
-      thread("root", { title: "Fix login", environment: { id: "env", name: null, branchName: "feat/oauth", path: null, isWorktree: true, providerId: null, workspaceDisplayKind: null } }),
+      thread("root", {
+        title: "Fix login",
+        environment: {
+          id: "env",
+          name: null,
+          branchName: "feat/oauth",
+          path: null,
+          isWorktree: true,
+          providerId: null,
+          workspaceDisplayKind: null,
+        },
+      }),
       thread("child", { title: "Write tests", parentThreadId: "root" }),
     ],
     projects,

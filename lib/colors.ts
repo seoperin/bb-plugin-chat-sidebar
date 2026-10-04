@@ -12,15 +12,20 @@ export const PALETTE = [
   { id: "red", hue: 4, sat: 70, light: 52 },
   { id: "orange", hue: 24, sat: 82, light: 50 },
   { id: "amber", hue: 40, sat: 92, light: 50 },
+  { id: "yellow", hue: 52, sat: 96, light: 48 },
   { id: "lime", hue: 96, sat: 52, light: 44 },
   { id: "green", hue: 145, sat: 52, light: 40 },
   { id: "teal", hue: 172, sat: 60, light: 37 },
   { id: "cyan", hue: 194, sat: 72, light: 43 },
   { id: "blue", hue: 214, sat: 75, light: 52 },
   { id: "indigo", hue: 238, sat: 58, light: 58 },
-  { id: "violet", hue: 266, sat: 58, light: 56 },
-  { id: "magenta", hue: 300, sat: 46, light: 48 },
+  // Lighter and pinker than indigo, which it used to all but match.
+  { id: "violet", hue: 270, sat: 50, light: 62 },
+  { id: "magenta", hue: 296, sat: 52, light: 44 },
   { id: "pink", hue: 336, sat: 68, light: 54 },
+  // Added later: offered by the picker, never handed out automatically.
+  { id: "brown", hue: 24, sat: 42, light: 38 },
+  { id: "slate", hue: 200, sat: 6, light: 46 },
 ] as const;
 
 export type ColorId = (typeof PALETTE)[number]["id"];
@@ -64,9 +69,28 @@ function hash(key: string): number {
   return value;
 }
 
+/**
+ * The colours `colorForKey` picks from. Fixed rather than the whole palette,
+ * so adding a colour does not repaint every chat without a project.
+ */
+const KEY_COLORS: readonly ColorId[] = [
+  "red",
+  "orange",
+  "amber",
+  "lime",
+  "green",
+  "teal",
+  "cyan",
+  "blue",
+  "indigo",
+  "violet",
+  "magenta",
+  "pink",
+];
+
 /** A colour for something with no project: stable per key, not deduplicated. */
 export function colorForKey(key: string): PaletteColor {
-  return PALETTE[hash(key) % PALETTE.length] ?? PALETTE[0];
+  return colorById(KEY_COLORS[hash(key) % KEY_COLORS.length] ?? "blue");
 }
 
 /**

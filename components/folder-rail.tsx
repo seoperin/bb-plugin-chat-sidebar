@@ -1,49 +1,80 @@
 // Folders as a narrow rail on the left, like Telegram's folder sidebar: an
 // icon with its name underneath, a badge for unread chats, and a dot for the
 // most urgent status. Projects show their colour and initial, the same as
-// their chats' avatars. The rail scrolls on its own, independently of the list.
+// their chats' avatars. The rail scrolls on its own, independently of the list,
+// and ends with the button that opens the folder editor. Folders are dragged
+// to reorder, a folder per project or per section as one block.
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { DndContext } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 import { Icon } from "@/components/ui/icon";
-import { avatarBackground } from "@/lib/colors";
-import { initialOf, type Chat, type Folder, type FolderId } from "@/lib/model";
+import { folderBlocks, type Chat, type Folder, type FolderId } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { useT } from "./chat-context";
+import { FolderGlyph } from "./folder-glyph";
 import { FolderMenu, useFolderLabel } from "./folder-menu";
-import { useProjectColors } from "./project-colors";
+import { useFolderDnd, useFolders } from "./folders-context";
+import { SortableBlock } from "./sortable-block";
 
-const ICONS: Partial<Record<FolderId, string>> = {
-  all: "MessageSquare",
-  attention: "BellDot",
-  archive: "Archive",
-};
-
-function FolderGlyph({ folder, label, selected }: { folder: Folder; label: string; selected: boolean }) {
-  const { colorOf } = useProjectColors();
-  if (folder.id.startsWith("project:")) {
-    const projectId = folder.id.slice("project:".length);
-    return (
-      <span
-        className={cn(
-          "grid size-8 place-items-center rounded-[10px] text-[13px] font-semibold text-white",
-          selected && "ring-2 ring-foreground/70 ring-offset-2 ring-offset-sidebar",
-        )}
-        style={{ background: avatarBackground(colorOf(projectId, projectId)) }}
-      >
-        {initialOf(label)}
-      </span>
-    );
-  }
-  const icon = ICONS[folder.id] ?? "Folder";
+function RailFolder({
+  folder,
+  rows,
+  selected,
+  onSelect,
+}: {
+  folder: Folder;
+  rows: readonly Chat[];
+  selected: boolean;
+  onSelect: (id: FolderId) => void;
+}) {
+  const t = useT();
+  const name = useFolderLabel()(folder);
   return (
-    <span
-      className={cn(
-        "grid size-8 place-items-center rounded-[10px] transition-colors",
-        selected ? "bg-foreground text-background" : "bg-sidebar-accent/70 text-muted-foreground group-hover:text-foreground",
-      )}
-    >
-      <Icon name={icon} className="size-4" />
-    </span>
+    <FolderMenu folder={folder} rows={rows}>
+      <button
+        type="button"
+        aria-pressed={selected}
+        title={name}
+        onClick={() => onSelect(folder.id)}
+        className="group relative flex w-full cursor-pointer select-none flex-col items-center gap-1 rounded-lg px-1 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="relative">
+          <FolderGlyph
+            kind={folder.kind}
+            icon={folder.icon}
+            color={folder.color}
+            projectId={folder.id.startsWith("project:") ? folder.id.slice("project:".length) : null}
+            colorProjectId={folder.linkedProjectId}
+            label={name}
+            selected={selected}
+          />
+          {folder.badge > 0 ? (
+            <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[color:var(--chat-working)] px-1 text-[10px] font-semibold tabular-nums text-white ring-2 ring-sidebar">
+              {folder.badge}
+            </span>
+          ) : null}
+          {folder.lane !== null ? (
+            <span
+              data-lane={folder.lane}
+              aria-hidden="true"
+              className="chat-lane-dot absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-sidebar"
+            />
+          ) : null}
+        </span>
+        <span
+          className={cn(
+            "w-full truncate text-center text-[10px] leading-3",
+            selected ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground",
+          )}
+        >
+          {name}
+        </span>
+        {folder.lane !== null ? (
+          <span className="sr-only">{`, ${t(folder.lane === "attention" ? "folder.hasWaiting" : "folder.hasWorking")}`}</span>
+        ) : null}
+      </button>
+    </FolderMenu>
   );
 }
 
@@ -65,8 +96,10 @@ export function FolderRail({
   top?: ReactNode;
 }) {
   const t = useT();
-  const label = useFolderLabel();
+  const { openEditor } = useFolders();
   const railRef = useRef<HTMLElement>(null);
+  const dnd = useFolderDnd("vertical");
+  const blocks = folderBlocks(folders);
 
   useEffect(() => {
     const item = railRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
@@ -83,53 +116,45 @@ export function FolderRail({
       <nav
         ref={railRef}
         aria-label={t("folder.tabs")}
-        className="flex min-h-0 flex-1 flex-col items-stretch gap-0.5 overflow-y-auto overscroll-contain pb-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex min-h-0 flex-1 flex-col items-stretch overflow-y-auto overscroll-contain pb-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {folders.map((folder) => {
-          const selected = folder.id === active;
-          const name = label(folder);
-          return (
-            <FolderMenu key={folder.id} folder={folder} rows={rows}>
-              <button
-                type="button"
-                aria-pressed={selected}
-                title={name}
-                onClick={() => onSelect(folder.id)}
-                className="group relative flex cursor-pointer flex-col items-center gap-1 rounded-lg px-1 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        <DndContext {...dnd.dndContextProps}>
+          <SortableContext
+            items={blocks.filter((block) => block.entryId !== "all").map((block) => block.entryId)}
+            strategy={verticalListSortingStrategy}
+          >
+            {blocks.map((block) => (
+              <SortableBlock
+                key={block.entryId}
+                id={block.entryId}
+                fixed={block.entryId === "all"}
+                className="flex flex-col gap-0.5 py-px"
               >
-                <span className="relative">
-                  <FolderGlyph folder={folder} label={name} selected={selected} />
-                  {folder.badge > 0 ? (
-                    <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[color:var(--chat-working)] px-1 text-[10px] font-semibold tabular-nums text-white ring-2 ring-sidebar">
-                      {folder.badge}
-                    </span>
-                  ) : null}
-                  {folder.lane !== null ? (
-                    <span
-                      data-lane={folder.lane}
-                      aria-hidden="true"
-                      className="chat-lane-dot absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-sidebar"
-                    />
-                  ) : null}
-                </span>
-                <span
-                  className={cn(
-                    "w-full truncate text-center text-[10px] leading-3",
-                    selected ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground",
-                  )}
-                >
-                  {name}
-                </span>
-                {folder.lane !== null ? (
-                  <span className="sr-only">
-                    {`, ${t(folder.lane === "attention" ? "folder.hasWaiting" : "folder.hasWorking")}`}
-                  </span>
-                ) : null}
-              </button>
-            </FolderMenu>
-          );
-        })}
+                {block.folders.map((folder) => (
+                  <RailFolder
+                    key={folder.id}
+                    folder={folder}
+                    rows={rows}
+                    selected={folder.id === active}
+                    onSelect={onSelect}
+                  />
+                ))}
+              </SortableBlock>
+            ))}
+          </SortableContext>
+        </DndContext>
       </nav>
+      {/* Like Telegram's folder settings, at the foot of the rail. */}
+      <button
+        type="button"
+        title={t("folders.edit")}
+        aria-label={t("folders.edit")}
+        onClick={() => openEditor(null)}
+        className="group flex shrink-0 cursor-pointer flex-col items-center gap-1 border-t border-sidebar-border px-1 py-1.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Icon name="SlidersHorizontal" className="size-4" />
+        <span className="text-[10px] leading-3">{t("folders.title")}</span>
+      </button>
     </div>
   );
 }

@@ -78,25 +78,6 @@
   }
 }
 
-/* Where a dragged pin will land. */
-.chat-drop-before::before,
-.chat-drop-after::after {
-  content: "";
-  position: absolute;
-  left: 0.5rem;
-  right: 0.5rem;
-  height: 2px;
-  border-radius: 9999px;
-  background: var(--chat-working);
-  pointer-events: none;
-}
-.chat-drop-before::before {
-  top: -1px;
-}
-.chat-drop-after::after {
-  bottom: -1px;
-}
-
 /* "Back to top" fades and rises in once the list is scrolled down. */
 .chat-to-top {
   opacity: 0;

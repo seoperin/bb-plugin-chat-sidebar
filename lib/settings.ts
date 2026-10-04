@@ -24,7 +24,7 @@ export const SETTINGS = {
     type: "select",
     label: "Projects",
     description:
-      "Folders: one folder per project. List headers: the list grouped under project headings. Off: one list.",
+      "Folders: a folder per project. List headers: the list grouped under project headings. Off: one list. Kept in step with the Projects folder in the folder editor.",
     options: [...PROJECT_OPTIONS] as string[],
     default: "Folders",
   },
@@ -50,13 +50,15 @@ export const SETTINGS = {
   },
   sectionFolders: {
     type: "boolean",
-    label: "Section tabs",
-    description: "A tab for each of your bb sidebar sections.",
+    label: "Section folders",
+    description:
+      "A folder for each of your bb sidebar sections. Kept in step with the Sections folder in the folder editor.",
     default: true,
   },
   archiveFolder: {
     type: "boolean",
-    label: "Archive tab",
+    label: "Archive folder",
+    description: "Kept in step with the Archive folder in the folder editor.",
     default: true,
   },
   foldChildren: {

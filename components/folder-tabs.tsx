@@ -1,12 +1,18 @@
-// Folder tabs above the list: All, Attention, projects, sections, Archive.
+// Folder tabs above the list, in the user's order and dragged to reorder,
+// with the button that opens the folder editor at the end.
 // The strip scrolls sideways (a mouse wheel scrolls it too), fades an edge
 // while there is more that way, and keeps the active tab in view.
 import { useEffect, useRef, useState } from "react";
+import { DndContext } from "@dnd-kit/core";
+import { horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 
-import type { Chat, Folder, FolderId } from "@/lib/model";
+import { Icon } from "@/components/ui/icon";
+import { folderBlocks, type Chat, type Folder, type FolderId } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { useT } from "./chat-context";
 import { FolderMenu, useFolderLabel } from "./folder-menu";
+import { useFolderDnd, useFolders } from "./folders-context";
+import { SortableBlock } from "./sortable-block";
 
 export function FolderTabs({
   folders,
@@ -21,7 +27,10 @@ export function FolderTabs({
 }) {
   const t = useT();
   const label = useFolderLabel();
+  const { openEditor } = useFolders();
   const stripRef = useRef<HTMLElement>(null);
+  const dnd = useFolderDnd("horizontal");
+  const blocks = folderBlocks(folders);
 
   // A vertical wheel scrolls the strip sideways; React's onWheel is passive.
   useEffect(() => {
@@ -70,48 +79,73 @@ export function FolderTabs({
       data-fade-end={overflow.end || undefined}
       className="chat-tab-strip flex gap-1 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      {folders.map((folder) => {
-        const selected = folder.id === active;
-        return (
-          <FolderMenu key={folder.id} folder={folder} rows={rows}>
-            <button
-              type="button"
-              aria-pressed={selected}
-              onClick={() => onSelect(folder.id)}
-              className={cn(
-                "flex h-6 max-w-40 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                selected
-                  ? "bg-foreground text-background"
-                  : "bg-sidebar-accent/70 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
-              )}
+      <DndContext {...dnd.dndContextProps}>
+        <SortableContext
+          items={blocks.filter((block) => block.entryId !== "all").map((block) => block.entryId)}
+          strategy={horizontalListSortingStrategy}
+        >
+          {blocks.map((block) => (
+            <SortableBlock
+              key={block.entryId}
+              id={block.entryId}
+              fixed={block.entryId === "all"}
+              className="flex shrink-0 gap-1 rounded-full"
             >
-              {folder.lane !== null ? (
-                <span
-                  data-lane={folder.lane}
-                  aria-hidden="true"
-                  className="chat-lane-dot size-1.5 shrink-0 rounded-full"
-                />
-              ) : null}
-              <span className="truncate">{label(folder)}</span>
-              {folder.lane !== null ? (
-                <span className="sr-only">
-                  {`, ${t(folder.lane === "attention" ? "folder.hasWaiting" : "folder.hasWorking")}`}
-                </span>
-              ) : null}
-              {folder.badge > 0 ? (
-                <span
-                  className={cn(
-                    "grid h-4 min-w-4 shrink-0 place-items-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
-                    selected ? "bg-background text-foreground" : "bg-muted-foreground/20",
-                  )}
-                >
-                  {folder.badge}
-                </span>
-              ) : null}
-            </button>
-          </FolderMenu>
-        );
-      })}
+              {block.folders.map((folder) => {
+                const selected = folder.id === active;
+                return (
+                  <FolderMenu key={folder.id} folder={folder} rows={rows}>
+                    <button
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => onSelect(folder.id)}
+                      className={cn(
+                        "relative flex h-6 max-w-40 shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-full px-2.5 text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                        selected
+                          ? "bg-foreground text-background"
+                          : "bg-sidebar-accent/70 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+                      )}
+                    >
+                      {folder.lane !== null ? (
+                        <span
+                          data-lane={folder.lane}
+                          aria-hidden="true"
+                          className="chat-lane-dot size-1.5 shrink-0 rounded-full"
+                        />
+                      ) : null}
+                      <span className="truncate">{label(folder)}</span>
+                      {folder.lane !== null ? (
+                        <span className="sr-only">
+                          {`, ${t(folder.lane === "attention" ? "folder.hasWaiting" : "folder.hasWorking")}`}
+                        </span>
+                      ) : null}
+                      {folder.badge > 0 ? (
+                        <span
+                          className={cn(
+                            "grid h-4 min-w-4 shrink-0 place-items-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
+                            selected ? "bg-background text-foreground" : "bg-muted-foreground/20",
+                          )}
+                        >
+                          {folder.badge}
+                        </span>
+                      ) : null}
+                    </button>
+                  </FolderMenu>
+                );
+              })}
+            </SortableBlock>
+          ))}
+        </SortableContext>
+      </DndContext>
+      <button
+        type="button"
+        title={t("folders.edit")}
+        aria-label={t("folders.edit")}
+        onClick={() => openEditor(null)}
+        className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Icon name="SlidersHorizontal" className="size-3.5" />
+      </button>
     </nav>
   );
 }

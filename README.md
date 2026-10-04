@@ -11,6 +11,10 @@ view, so nothing about how bb works changes.
   <img src="docs/screenshots/project-colour.png" alt="Right-click menu picking a project colour" width="350">
 </p>
 
+<p>
+  <img src="docs/screenshots/folder-editor.png" alt="The folder editor: every folder on the left, a folder's icon and the rule that picks its chats on the right" width="640">
+</p>
+
 ## Features
 
 - **One row per task.** Sub-agents and forks fold into their parent chat and
@@ -24,10 +28,18 @@ view, so nothing about how bb works changes.
 - **Folders.** All, Attention (waiting, working, or unread), one per project in
   order of use, one per bb section, and Archive. Each has an unread badge and
   a status dot. Show them as tabs above the list, or as a Telegram-style rail
-  on the left that scrolls on its own.
+  on the left that scrolls on its own. Drag a folder to move it.
+- **Your own folders.** Like Telegram's: pick chats by status, project,
+  section, agent, words in the title or branch, how long they have waited, or
+  when they were last active, and add or leave out chats by hand. Ready-made
+  ones to start from: waiting over an hour, failed today, working now, unread,
+  pinned. Hide, rename, reorder, and give any folder an icon and a colour.
+  The folders sync across your devices; the last 20 versions are kept, and
+  deleting, resetting and restoring ask first.
 - **Project colours.** Clear colours are assigned automatically, so a few
-  projects never look alike. Right-click a project to pick one of 12. The pick
-  syncs across your devices.
+  projects never look alike. Right-click a project to pick one of 15. The pick
+  syncs across your devices, and a folder about one project wears its
+  colour.
 - **New chat in context.** The **+** starts a chat in the open project or
   section. Right-click it to choose any project.
 - **Search** by title, project, branch, or sub-agent.
@@ -61,6 +73,9 @@ Requires bb 0.44 or later.
 | Reorder pinned chats | Drag them up or down |
 | Start a chat in a project | Open its folder and press **+**, or right-click **+** |
 | Read everything in a folder | Right-click the folder → Mark all as read |
+| Arrange folders | **Folders** at the foot of the rail, the sliders at the end of the tabs, or right-click a folder → Edit folders |
+| Move a folder | Drag it in the rail or the tabs. On a touch screen, hold it first |
+| Put a chat in a folder | Right-click the chat → Add to folder |
 | Change a project's colour | Right-click its folder, heading, or any of its chats |
 | Search | Type in the search bar. Enter opens the first match, and ↓ moves into the list |
 
@@ -87,13 +102,18 @@ bb plugin config chat-sidebar unset folderLayout        # back to the default
 | `foldChildren` | sub-agents and forks share their parent's row | `true` |
 | `hideQuietAfterDays` | hide calm, read, unpinned chats older than this. `0` turns it off | `0` |
 
+`projects`, `sectionFolders` and `archiveFolder` are kept in step with the
+folder editor: hiding Archive there turns `archiveFolder` off, and the other
+way round.
+
 ## Data and privacy
 
 The plugin makes no network requests of its own and needs no accounts or
-keys. It reads threads through bb's plugin SDK. Project colours are stored in
-the plugin's key-value storage inside bb. The open folder and collapsed
-headings are remembered in the browser's localStorage, along with a copy of
-the project colours so they show before bb answers.
+keys. It reads threads through bb's plugin SDK. Project colours, the folder
+layout and its last 20 versions are stored in the plugin's key-value storage
+inside bb. The open folder and collapsed headings are remembered in the
+browser's localStorage, along with a copy of the project colours and folders
+so they show before bb answers.
 
 ## Development
 
@@ -110,15 +130,20 @@ The code is laid out like this:
 
 ```
 app.tsx                 registers the thread-list slot
-server.ts               settings and the project-colour store (RPC + realtime)
+server.ts               settings, project colours and folders (RPC + realtime)
 lib/                    pure logic, unit-tested
   model.ts              chats, folding, folders, project groups, search, pin order
+  folders.ts            the folder layout, custom folder rules, templates, icons
+  folder-store.ts       the stored layout: revisions, history, restore
+  folder-settings.ts    the old folder settings kept in step with the layout
   status.ts             bb thread state → needs you / working / done + a status message
   colors.ts             palette and automatic colour assignment
   i18n/                 typed translator, en.ts is the source of truth
   settings.ts           setting definitions and parsing
 components/             the UI (chat-list.tsx puts it together)
-hooks/                  scroll area, paging, pinned order, pin dragging
+  folder-editor/        the folder editor dialog (a bottom sheet on phones)
+hooks/                  scroll area, paging, pinned order, drag to reorder (dnd-kit)
+assets/icons/           folder icons from Hugeicons, declared in the manifest
 components/ui/          components vendored from bb's plugin registry
 test/                   vitest, including a rendered-list test with bb's SDK test harness
 ```
@@ -127,13 +152,18 @@ A few details that matter if you change things:
 
 - Every row's anchor carries `data-sidebar-thread-shortcut-target` and
   `data-sidebar-thread-id`. bb's thread shortcuts find rows by these.
-- Rows spread bb's split-drag handler. Dragging pinned chats uses pointer
-  events, not HTML drag and drop, so both gestures keep working.
+- Rows spread bb's split-drag handler on pointer events. Reordering pinned
+  chats and folders uses @dnd-kit, as bb's own sidebar does
+  (`hooks/use-sortable.ts`); it listens to mouse and touch events, so both
+  gestures keep working.
 - bb owns the scroll area, so the list finds it in the DOM
   (`hooks/use-scroll-area.ts`). The list must not shrink inside it, or the
   sticky search bar scrolls away.
 - The frontend imports only types from `lib/rpc.ts`, which keeps zod out of
   the app bundle.
+- A folder save names the revision it was made on, and the backend refuses
+  one made on an older revision, so a device that was offline cannot undo
+  newer folders.
 
 ### Adding a language
 

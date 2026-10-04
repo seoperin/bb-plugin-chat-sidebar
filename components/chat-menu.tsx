@@ -21,10 +21,71 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Icon } from "@/components/ui/icon";
-import type { Chat } from "@/lib/model";
+import { customEntry, hasFilters, MAX_CUSTOM_FOLDERS, type FolderRule } from "@/lib/folders";
+import { matchesRule, type Chat } from "@/lib/model";
 import { laneOf } from "@/lib/status";
 import { useT } from "./chat-context";
+import { useFolderLabel } from "./folder-menu";
+import { useFolders } from "./folders-context";
 import { ProjectColorSubmenu } from "./project-colors";
+
+/**
+ * Put a chat in a custom folder or take it out. Taking out a chat that the
+ * folder's filters pick excludes it by hand, the way Telegram does.
+ */
+function withChat(rule: FolderRule, row: Chat, include: boolean): FolderRule {
+  const id = row.thread.id;
+  const chats = rule.chats.filter((chat) => chat !== id);
+  const excludeChats = rule.excludeChats.filter((chat) => chat !== id);
+  if (include) return { ...rule, chats: [...chats, id], excludeChats };
+  const stillPicked = hasFilters(rule) && matchesRule(row, { ...rule, chats, excludeChats }, Date.now());
+  return { ...rule, chats, excludeChats: stillPicked ? [...excludeChats, id] : excludeChats };
+}
+
+/** "Add to folder": every custom folder with a tick where the chat is in. */
+function FolderSubmenu({ row }: { row: Chat }) {
+  const t = useT();
+  const label = useFolderLabel();
+  const { layout, setLayout, updateEntry, openEditor } = useFolders();
+  const custom = layout.entries.filter((entry) => entry.kind === "custom" && entry.rule !== null);
+  const now = Date.now();
+  return (
+    <ContextMenuSub>
+      <ContextMenuSubTrigger>
+        <Icon name="FolderPlus" />
+        {t("menu.addToFolder")}
+      </ContextMenuSubTrigger>
+      <ContextMenuSubContent className="min-w-48 max-w-72">
+        {custom.map((entry) => {
+          const rule = entry.rule!;
+          const inside = matchesRule(row, rule, now);
+          return (
+            <ContextMenuItem
+              key={entry.id}
+              onSelect={() => updateEntry(entry.id, { rule: withChat(rule, row, !inside) })}
+            >
+              <Icon name={entry.icon ?? "Folder"} />
+              <span className="flex-1 truncate">{label(entry)}</span>
+              {inside ? <Icon name="Check" className="size-3.5" /> : null}
+            </ContextMenuItem>
+          );
+        })}
+        {custom.length > 0 ? <ContextMenuSeparator /> : null}
+        <ContextMenuItem
+          disabled={custom.length >= MAX_CUSTOM_FOLDERS}
+          onSelect={() => {
+            const entry = customEntry(t("folders.new"), "Folder", { chats: [row.thread.id] });
+            setLayout({ ...layout, entries: [...layout.entries, entry] });
+            openEditor(entry.id, { focusName: true });
+          }}
+        >
+          <Icon name="Plus" />
+          {t("menu.newFolderWith")}
+        </ContextMenuItem>
+      </ContextMenuSubContent>
+    </ContextMenuSub>
+  );
+}
 
 const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 const MAX_SUB_AGENTS = 8;
@@ -136,6 +197,7 @@ export function ChatMenu({
           </ContextMenuItem>
         ) : null}
         {row.project !== null ? <ProjectColorSubmenu projectId={row.project.id} /> : null}
+        {thread.isArchived ? null : <FolderSubmenu row={row} />}
         <ContextMenuSeparator />
         {thread.isArchived ? (
           <ContextMenuItem

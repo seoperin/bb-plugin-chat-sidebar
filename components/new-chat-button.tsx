@@ -1,6 +1,7 @@
-// "+" for a new chat, aware of the open folder: in a project's folder it
-// starts the chat in that project, in a section's folder it files it there,
-// elsewhere it opens bb's New thread as usual. Right-click to pick any project.
+// "+" for a new chat, aware of the open folder: in a project's folder (or a
+// custom folder about one project) it starts the chat in that project, in a
+// section's folder it files it there, elsewhere it opens bb's New thread as
+// usual. Right-click to pick any project.
 import { experimental_useSidebarThreadActions, type PluginSidebarProject } from "@get-bb/plugin-sdk/app";
 
 import {
@@ -36,12 +37,8 @@ export function NewChatButton({
   const actions = experimental_useSidebarThreadActions();
   const { colorOf } = useProjectColors();
 
-  const projectId = folder?.id.startsWith("project:") ? folder.id.slice("project:".length) : null;
-  const sectionId = folder?.id.startsWith("section:") ? folder.id.slice("section:".length) : null;
-  const title =
-    folder !== null && (projectId !== null || sectionId !== null)
-      ? t("newChat.in", { name: label(folder) })
-      : t("newChat.label");
+  const startIn = folder?.startIn ?? null;
+  const title = folder !== null && startIn !== null ? t("newChat.in", { name: label(folder) }) : t("newChat.label");
 
   const start = (options: { projectId?: string; sectionId?: string }) => {
     actions.openNewThread({ ...options, focusPrompt: true });
@@ -55,9 +52,7 @@ export function NewChatButton({
           type="button"
           aria-label={title}
           title={title}
-          onClick={() =>
-            start(projectId !== null ? { projectId } : sectionId !== null ? { sectionId } : {})
-          }
+          onClick={() => start(startIn ?? {})}
           className={cn(
             "grid size-7 shrink-0 cursor-pointer place-items-center rounded-full bg-sidebar-accent/70 text-muted-foreground outline-none transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
             className,

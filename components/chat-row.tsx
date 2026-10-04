@@ -1,7 +1,8 @@
 // One chat in the list. The row is an anchor on the thread's href, with the
 // two data attributes bb's thread shortcuts (⌘1…9, next/previous) look for,
-// and with bb's split-drag handler, so it behaves like bb's own row.
-import { useState, type MouseEvent, type PointerEvent } from "react";
+// and with bb's split-drag handler, so it behaves like bb's own row. A pinned
+// row is also sortable: its <li> takes the drag, its anchor the split.
+import { useState, type MouseEvent } from "react";
 import {
   ThreadTitle,
   experimental_ProviderIcon as ProviderIcon,
@@ -13,6 +14,7 @@ import {
 } from "@get-bb/plugin-sdk/app";
 
 import { Icon } from "@/components/ui/icon";
+import { useSortableItem, type SortableBindings } from "@/hooks/use-sortable";
 import { avatarBackground } from "@/lib/colors";
 import { avatarLetter, type Chat } from "@/lib/model";
 import { statusMessage } from "@/lib/status";
@@ -24,14 +26,6 @@ import { useProjectColors } from "./project-colors";
 import { RenameInput } from "./rename-input";
 
 export type ProviderSummary = ReturnType<typeof experimental_useProviders>["providers"][number];
-
-export interface RowDrag {
-  /** This row is the one being dragged. */
-  dragging: boolean;
-  /** Where the dragged row would land relative to this one. */
-  hint: "before" | "after" | null;
-  onPointerDown: (event: PointerEvent<HTMLElement>) => void;
-}
 
 function Avatar({ row, size }: { row: Chat; size: "md" | "sm" }) {
   const color = useProjectColors().colorOf(row.project?.id ?? null, row.thread.id);
@@ -131,7 +125,7 @@ function WhereLine({
   const project =
     showProject && row.project !== null ? (row.project.isPersonal ? t("folder.personal") : row.project.name) : null;
   // The machine only tells something when there is more than one.
-  const host = showHost ? thread.host?.name ?? null : null;
+  const host = showHost ? (thread.host?.name ?? null) : null;
   const parts = [project, branch, host].filter((part): part is string => part !== null && part !== "");
   return (
     <span className="flex min-w-0 flex-1 items-center gap-1 text-muted-foreground">
@@ -170,7 +164,7 @@ export function ChatRow({
   provider,
   showProject,
   showHost,
-  drag,
+  sortable,
   onOpen,
 }: {
   row: Chat;
@@ -181,8 +175,8 @@ export function ChatRow({
   showProject: boolean;
   /** True when several machines run threads, so the machine name tells something. */
   showHost: boolean;
-  /** Pinned rows only: dragging reorders the pins. */
-  drag: RowDrag | null;
+  /** Pinned rows only: dragging reorders the pins (see `hooks/use-sortable.ts`). */
+  sortable: SortableBindings | null;
   onOpen: (threadId: string, split: boolean) => void;
 }) {
   const { settings, i18n } = useChat();
@@ -199,10 +193,6 @@ export function ChatRow({
     event.preventDefault();
     onOpen(thread.id, event.metaKey || event.ctrlKey);
   };
-  const onPointerDown = (event: PointerEvent<HTMLAnchorElement>) => {
-    splitProps.onPointerDown?.(event);
-    drag?.onPointerDown(event);
-  };
 
   const title = (
     <span className={cn("min-w-0 flex-1 truncate", row.unread ? "font-semibold text-foreground" : "font-medium")}>
@@ -212,22 +202,14 @@ export function ChatRow({
 
   return (
     <li
+      ref={sortable?.setNodeRef}
+      style={sortable?.style}
+      {...sortable?.handleProps}
       data-chat-row={thread.id}
-      data-chat-pin={drag !== null ? thread.id : undefined}
-      className={cn(
-        "relative list-none",
-        drag?.dragging && "opacity-50",
-        drag?.hint === "before" && "chat-drop-before",
-        drag?.hint === "after" && "chat-drop-after",
-      )}
+      className={cn("relative list-none", sortable?.isDragging && "rounded-lg bg-sidebar shadow-lg")}
     >
       {renaming ? (
-        <div
-          className={cn(
-            "flex items-center gap-2 rounded-lg bg-sidebar-accent px-2",
-            compact ? "h-8" : "h-14",
-          )}
-        >
+        <div className={cn("flex items-center gap-2 rounded-lg bg-sidebar-accent px-2", compact ? "h-8" : "h-14")}>
           <Avatar row={row} size={compact ? "sm" : "md"} />
           <RenameInput thread={thread} onDone={() => setRenaming(false)} />
         </div>
@@ -242,7 +224,7 @@ export function ChatRow({
             aria-keyshortcuts={shortcut?.ariaKeyshortcuts}
             draggable={false}
             onClick={onClick}
-            onPointerDown={onPointerDown}
+            onPointerDown={splitProps.onPointerDown}
             onDoubleClick={(event) => {
               event.preventDefault();
               setRenaming(true);
@@ -287,4 +269,10 @@ export function ChatRow({
       )}
     </li>
   );
+}
+
+/** A pinned row: the same row, sortable among the pins. */
+export function SortableChatRow(props: Omit<Parameters<typeof ChatRow>[0], "sortable">) {
+  const sortable = useSortableItem(props.row.thread.id);
+  return <ChatRow {...props} sortable={sortable} />;
 }
