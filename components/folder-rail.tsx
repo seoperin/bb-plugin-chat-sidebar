@@ -1,7 +1,8 @@
 // Folders as a narrow rail on the left, like Telegram's folder sidebar: an
 // icon with its name underneath, a badge for unread chats, and a dot for the
 // most urgent status. Projects show their colour and initial, the same as
-// their chats' avatars. The rail scrolls on its own, independently of the list,
+// their chats' avatars. With names turned off the rail keeps only the icons
+// and narrows; the name stays in the tooltip and for screen readers. The rail scrolls on its own, independently of the list,
 // and ends with the button that opens the folder editor. Folders are dragged
 // to reorder, a folder per project or per section as one block.
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
@@ -11,7 +12,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Icon } from "@/components/ui/icon";
 import { folderBlocks, type Chat, type Folder, type FolderId } from "@/lib/model";
 import { cn } from "@/lib/utils";
-import { useT } from "./chat-context";
+import { useChat, useT } from "./chat-context";
 import { FolderGlyph } from "./folder-glyph";
 import { FolderMenu, useFolderLabel } from "./folder-menu";
 import { useFolderDnd, useFolders } from "./folders-context";
@@ -21,11 +22,13 @@ function RailFolder({
   folder,
   rows,
   selected,
+  showName,
   onSelect,
 }: {
   folder: Folder;
   rows: readonly Chat[];
   selected: boolean;
+  showName: boolean;
   onSelect: (id: FolderId) => void;
 }) {
   const t = useT();
@@ -64,7 +67,7 @@ function RailFolder({
         </span>
         <span
           className={cn(
-            "w-full truncate text-center text-[10px] leading-3",
+            showName ? "w-full truncate text-center text-[10px] leading-3" : "sr-only",
             selected ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground",
           )}
         >
@@ -96,6 +99,8 @@ export function FolderRail({
   top?: ReactNode;
 }) {
   const t = useT();
+  const { settings } = useChat();
+  const showNames = settings.folderNames;
   const { openEditor } = useFolders();
   const railRef = useRef<HTMLElement>(null);
   const dnd = useFolderDnd("vertical");
@@ -109,7 +114,10 @@ export function FolderRail({
   return (
     <div
       style={{ height: height > 0 ? `${height}px` : undefined } as CSSProperties}
-      className="sticky top-0 flex w-16 shrink-0 flex-col self-start border-r border-sidebar-border"
+      className={cn(
+        "sticky top-0 flex shrink-0 flex-col self-start border-r border-sidebar-border",
+        showNames ? "w-16" : "w-12",
+      )}
     >
       {/* Same box as the search row: pt-1, a 28px control, pb-2. */}
       {top !== undefined ? <div className="flex shrink-0 justify-center pb-2 pt-1">{top}</div> : null}
@@ -136,6 +144,7 @@ export function FolderRail({
                     folder={folder}
                     rows={rows}
                     selected={folder.id === active}
+                    showName={showNames}
                     onSelect={onSelect}
                   />
                 ))}
@@ -153,7 +162,7 @@ export function FolderRail({
         className="group flex shrink-0 cursor-pointer flex-col items-center gap-1 border-t border-sidebar-border px-1 py-1.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Icon name="SlidersHorizontal" className="size-4" />
-        <span className="text-[10px] leading-3">{t("folders.title")}</span>
+        {showNames ? <span className="text-[10px] leading-3">{t("folders.title")}</span> : null}
       </button>
     </div>
   );

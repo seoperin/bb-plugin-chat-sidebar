@@ -8,6 +8,7 @@ describe("parseSettings", () => {
       language: "auto",
       projects: "tabs",
       folderLayout: "tabs",
+      folderNames: true,
       density: "comfortable",
       stickyHeadings: true,
       sectionFolders: true,

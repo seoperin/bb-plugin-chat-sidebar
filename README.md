@@ -95,6 +95,7 @@ bb plugin config chat-sidebar unset folderLayout        # back to the default
 | `language` | `Auto`, `English`, `Русский` | `Auto` |
 | `projects` | `Folders`, `List headers`, `Off` | `Folders` |
 | `folderLayout` | `Tabs above the list`, `Rail on the left` | `Tabs above the list` |
+| `folderNames` | names under the rail's icons; off leaves a narrower, icon-only rail | `true` |
 | `density` | `Comfortable`, `Compact` | `Comfortable` |
 | `stickyHeadings` | keep the current project heading under the tabs (`List headers`) | `true` |
 | `sectionFolders` | a folder per bb section | `true` |

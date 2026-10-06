@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+- **Icons-only rail.** A new setting, **Folder names on the rail**, turns off
+  the names under the rail's icons. The rail gets narrower, and a folder's
+  name still shows on hover. It is on by default, so nothing changes until
+  you turn it off.
+
 ## 0.2.0
 
 - **Your own folders**, like Telegram's. Pick chats by status, project,

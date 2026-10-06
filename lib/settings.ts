@@ -35,6 +35,12 @@ export const SETTINGS = {
     options: [...FOLDER_LAYOUT_OPTIONS] as string[],
     default: "Tabs above the list",
   },
+  folderNames: {
+    type: "boolean",
+    label: "Folder names on the rail",
+    description: "Off: the rail shows only the icons and gets narrower. A folder's name still shows when you hover it.",
+    default: true,
+  },
   density: {
     type: "select",
     label: "Row size",
@@ -85,6 +91,7 @@ export interface ChatSettings {
   language: Language;
   projects: ProjectGrouping;
   folderLayout: FolderLayout;
+  folderNames: boolean;
   density: Density;
   stickyHeadings: boolean;
   sectionFolders: boolean;
@@ -118,6 +125,7 @@ export function parseSettings(values: Readonly<Record<string, unknown>> | undefi
       { "Tabs above the list": "tabs", "Rail on the left": "rail" },
       "tabs",
     ),
+    folderNames: bool(source.folderNames, SETTINGS.folderNames.default),
     density: pick<Density>(source.density, { Comfortable: "comfortable", Compact: "compact" }, "comfortable"),
     stickyHeadings: bool(source.stickyHeadings, SETTINGS.stickyHeadings.default),
     sectionFolders: bool(source.sectionFolders, SETTINGS.sectionFolders.default),
