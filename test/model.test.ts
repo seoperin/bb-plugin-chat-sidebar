@@ -96,6 +96,16 @@ describe("folders", () => {
     expect(folders.find((folder) => folder.id === "project:proj_a")).toMatchObject({ name: "Alpha", badge: 1 });
   });
 
+  it("leaves muted chats out of badges and Attention", () => {
+    const folders = buildFolders(rows, projects, sections, layoutOf(true, true, true), NOW, (row) => row.thread.id === "a1");
+    const byId = (id: string) => folders.find((folder) => folder.id === id)!;
+    expect(byId("attention")).toMatchObject({ badge: 1, lane: "working" });
+    expect(ids(rows.filter((row) => byId("attention").matches(row)))).toEqual(["b1"]);
+    expect(byId("project:proj_a")).toMatchObject({ badge: 0 });
+    // Still in its own folders, just quiet.
+    expect(ids(rows.filter((row) => byId("project:proj_a").matches(row)))).toEqual(["a1", "s1"]);
+  });
+
   it("keeps Attention even when nothing needs the user", () => {
     const calm = buildChats([thread("calm")], projects);
     const folders = buildFolders(calm, projects, [], layoutOf(false, false, false), NOW);

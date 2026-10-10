@@ -2,7 +2,7 @@
 // two data attributes bb's thread shortcuts (⌘1…9, next/previous) look for,
 // and with bb's split-drag handler, so it behaves like bb's own row. A pinned
 // row is also sortable: its <li> takes the drag, its anchor the split.
-import { useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import {
   ThreadTitle,
   experimental_Icon as RegisteredIcon,
@@ -17,6 +17,7 @@ import {
 
 import { Icon } from "@/components/ui/icon";
 import type { MessageMatch } from "@/hooks/use-message-search";
+import { useRefreshMuted } from "@/hooks/use-muted";
 import { useSortableItem, type SortableBindings } from "@/hooks/use-sortable";
 import { avatarBackground } from "@/lib/colors";
 import { avatarLetter, type Chat } from "@/lib/model";
@@ -214,7 +215,17 @@ const NOTIFICATION_KEYS = [NOTIFICATIONS_ACTION];
 function useMutedIcon(thread: Chat["thread"]): string | null {
   const target = useMemo(() => toActionTarget(thread), [thread]);
   const [entry] = experimental_useThreadActions(target, { keys: NOTIFICATION_KEYS });
-  return entry?.action.icon === MUTED_ICON ? MUTED_ICON : null;
+  const muted = entry?.action.icon === MUTED_ICON;
+  // The level changed here (from a menu, most likely): the folder badges,
+  // which read every thread's level, should follow without waiting.
+  const refresh = useRefreshMuted();
+  const seen = useRef(muted);
+  useEffect(() => {
+    if (seen.current === muted) return;
+    seen.current = muted;
+    refresh();
+  }, [muted, refresh]);
+  return muted ? MUTED_ICON : null;
 }
 
 export function ChatRow({

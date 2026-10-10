@@ -25,6 +25,7 @@ import { DndContext } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 import { useMessageSearch, type MessageMatch } from "@/hooks/use-message-search";
+import { MutedRefreshProvider, useMutedThreads } from "@/hooks/use-muted";
 import { usePaging } from "@/hooks/use-paging";
 import { usePinnedOrder } from "@/hooks/use-pinned-order";
 import { useScrollArea } from "@/hooks/use-scroll-area";
@@ -200,9 +201,10 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   // Automatic colours go to projects that have chats, so a few busy projects
   // are not pushed into the in-between hues by empty ones.
   const projectsInUse = useMemo(() => projectsByUse(chats, projects), [chats, projects]);
+  const { muted, refresh: refreshMuted } = useMutedThreads(threads);
   const folders = useMemo(
-    () => buildFolders(chats, projects, sections, layout, now),
-    [chats, projects, sections, layout, now],
+    () => buildFolders(chats, projects, sections, layout, now, (row) => muted.has(row.thread.id)),
+    [chats, projects, sections, layout, now, muted],
   );
   // A remembered folder that no longer exists falls back to All.
   const currentFolder = folders.find((item) => item.id === folder) ?? folders[0] ?? null;
@@ -305,115 +307,117 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   );
 
   return (
-    <ProjectColorsProvider projects={projectsInUse}>
-      <div
-        className={cn(
-          // bb's scroll area is a flex column: without shrink-0 the list is
-          // squeezed to one screen and the sticky search scrolls away with it.
-          "chat-sidebar flex min-h-full shrink-0",
-          draggingPin && "select-none",
-        )}
-        style={{ "--chat-top": `${topHeight}px` } as CSSProperties}
-      >
-        {rail ? (
-          <FolderRail
-            folders={folders}
-            rows={chats}
-            active={activeFolder}
-            height={scrollArea.viewportHeight}
-            onSelect={setFolder}
-            top={newChat}
-          />
-        ) : null}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div ref={paging.topRef} className="-mb-px h-px" aria-hidden="true" />
-          <div ref={topRef} className="sticky top-0 z-10 bg-sidebar pt-1">
-            <div className="flex items-center gap-1.5 px-2 pb-2">
-              <SearchBar
-                query={query}
-                onChange={setQuery}
-                onSubmit={() => {
-                  if (shown[0] !== undefined) open(shown[0].thread.id, false);
-                }}
-                onArrowDown={() => focusRow(listRef.current, null, "first")}
-              />
-              {rail ? null : newChat}
+    <MutedRefreshProvider value={refreshMuted}>
+      <ProjectColorsProvider projects={projectsInUse}>
+        <div
+          className={cn(
+            // bb's scroll area is a flex column: without shrink-0 the list is
+            // squeezed to one screen and the sticky search scrolls away with it.
+            "chat-sidebar flex min-h-full shrink-0",
+            draggingPin && "select-none",
+          )}
+          style={{ "--chat-top": `${topHeight}px` } as CSSProperties}
+        >
+          {rail ? (
+            <FolderRail
+              folders={folders}
+              rows={chats}
+              active={activeFolder}
+              height={scrollArea.viewportHeight}
+              onSelect={setFolder}
+              top={newChat}
+            />
+          ) : null}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div ref={paging.topRef} className="-mb-px h-px" aria-hidden="true" />
+            <div ref={topRef} className="sticky top-0 z-10 bg-sidebar pt-1">
+              <div className="flex items-center gap-1.5 px-2 pb-2">
+                <SearchBar
+                  query={query}
+                  onChange={setQuery}
+                  onSubmit={() => {
+                    if (shown[0] !== undefined) open(shown[0].thread.id, false);
+                  }}
+                  onArrowDown={() => focusRow(listRef.current, null, "first")}
+                />
+                {rail ? null : newChat}
+              </div>
+              {rail ? null : <FolderTabs folders={folders} rows={chats} active={activeFolder} onSelect={setFolder} />}
             </div>
-            {rail ? null : <FolderTabs folders={folders} rows={chats} active={activeFolder} onSelect={setFolder} />}
-          </div>
 
-          <div
-            ref={listRef}
-            role="region"
-            aria-label={t("list.label")}
-            onKeyDown={onListKeyDown}
-            className="px-1.5 pb-2"
-          >
-            <DndContext
-              {...pinDnd.dndContextProps}
-              onDragStart={(event) => {
-                setDraggingPin(true);
-                pinDnd.dndContextProps.onDragStart?.(event);
-              }}
-              onDragCancel={(event) => {
-                setDraggingPin(false);
-                pinDnd.dndContextProps.onDragCancel?.(event);
-              }}
-              onDragEnd={(event) => {
-                setDraggingPin(false);
-                pinDnd.dndContextProps.onDragEnd?.(event);
-              }}
+            <div
+              ref={listRef}
+              role="region"
+              aria-label={t("list.label")}
+              onKeyDown={onListKeyDown}
+              className="px-1.5 pb-2"
             >
-              <SortableContext items={pinnedIds} strategy={verticalListSortingStrategy}>
-                {status === "loading" ? (
-                  note(t("list.loading"))
-                ) : status === "error" && chats.length === 0 ? (
-                  note(t("list.error"))
-                ) : shown.length === 0 ? (
-                  note(emptyText)
-                ) : grouped ? (
-                  groupByProject(visible, projects).map((group) => (
-                    <section key={group.key} className="mb-1">
-                      <GroupHeader
-                        group={group}
-                        collapsed={collapsed.has(group.key)}
-                        sticky={settings.stickyHeadings}
-                        onToggle={() => toggleGroup(group.key)}
-                      />
-                      {collapsed.has(group.key) ? null : <ul className="space-y-px">{group.chats.map(renderRow)}</ul>}
-                    </section>
-                  ))
-                ) : (
-                  <ul className="space-y-px">{visible.map(renderRow)}</ul>
-                )}
-              </SortableContext>
-            </DndContext>
-            {paging.hasMore ? <div ref={paging.endRef} className="h-8" aria-hidden="true" /> : null}
-            {hiddenQuiet > 0 ? (
-              <button
-                type="button"
-                onClick={() => setShowQuiet(true)}
-                className="mx-auto mt-1 block cursor-pointer rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+              <DndContext
+                {...pinDnd.dndContextProps}
+                onDragStart={(event) => {
+                  setDraggingPin(true);
+                  pinDnd.dndContextProps.onDragStart?.(event);
+                }}
+                onDragCancel={(event) => {
+                  setDraggingPin(false);
+                  pinDnd.dndContextProps.onDragCancel?.(event);
+                }}
+                onDragEnd={(event) => {
+                  setDraggingPin(false);
+                  pinDnd.dndContextProps.onDragEnd?.(event);
+                }}
               >
-                {t("list.hiddenQuiet", { count: hiddenQuiet })}
-              </button>
-            ) : null}
-            {archiveMode && archivePages?.hasNextPage ? (
-              <button
-                type="button"
-                disabled={archivePages.isFetchingNextPage}
-                onClick={() => void archivePages.fetchNextPage()}
-                className="mx-auto mt-1 block cursor-pointer rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground disabled:opacity-50"
-              >
-                {archivePages.isFetchingNextPage ? t("list.loadingMore") : t("list.loadMore")}
-              </button>
-            ) : null}
-          </div>
+                <SortableContext items={pinnedIds} strategy={verticalListSortingStrategy}>
+                  {status === "loading" ? (
+                    note(t("list.loading"))
+                  ) : status === "error" && chats.length === 0 ? (
+                    note(t("list.error"))
+                  ) : shown.length === 0 ? (
+                    note(emptyText)
+                  ) : grouped ? (
+                    groupByProject(visible, projects).map((group) => (
+                      <section key={group.key} className="mb-1">
+                        <GroupHeader
+                          group={group}
+                          collapsed={collapsed.has(group.key)}
+                          sticky={settings.stickyHeadings}
+                          onToggle={() => toggleGroup(group.key)}
+                        />
+                        {collapsed.has(group.key) ? null : <ul className="space-y-px">{group.chats.map(renderRow)}</ul>}
+                      </section>
+                    ))
+                  ) : (
+                    <ul className="space-y-px">{visible.map(renderRow)}</ul>
+                  )}
+                </SortableContext>
+              </DndContext>
+              {paging.hasMore ? <div ref={paging.endRef} className="h-8" aria-hidden="true" /> : null}
+              {hiddenQuiet > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setShowQuiet(true)}
+                  className="mx-auto mt-1 block cursor-pointer rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+                >
+                  {t("list.hiddenQuiet", { count: hiddenQuiet })}
+                </button>
+              ) : null}
+              {archiveMode && archivePages?.hasNextPage ? (
+                <button
+                  type="button"
+                  disabled={archivePages.isFetchingNextPage}
+                  onClick={() => void archivePages.fetchNextPage()}
+                  className="mx-auto mt-1 block cursor-pointer rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground disabled:opacity-50"
+                >
+                  {archivePages.isFetchingNextPage ? t("list.loadingMore") : t("list.loadMore")}
+                </button>
+              ) : null}
+            </div>
 
-          <BackToTop visible={scrollArea.farFromTop && !draggingPin} onClick={scrollArea.scrollToTop} />
+            <BackToTop visible={scrollArea.farFromTop && !draggingPin} onClick={scrollArea.scrollToTop} />
+          </div>
         </div>
-      </div>
-      <FolderEditor rows={chats} projects={projectsInUse} sections={sections} now={now} />
-    </ProjectColorsProvider>
+        <FolderEditor rows={chats} projects={projectsInUse} sections={sections} now={now} />
+      </ProjectColorsProvider>
+    </MutedRefreshProvider>
   );
 }

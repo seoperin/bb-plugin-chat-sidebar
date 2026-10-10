@@ -249,6 +249,8 @@ export function buildFolders(
   sections: readonly PluginSidebarSection[],
   layout: FolderLayout,
   now: number,
+  /** Muted chats count in no badge and stay out of Attention, as in Telegram. */
+  isMuted: (row: Chat) => boolean = () => false,
 ): Folder[] {
   const folders: Folder[] = [];
   const add = (
@@ -259,12 +261,13 @@ export function buildFolders(
     matches: (row: Chat) => boolean,
   ) => {
     const inside = rows.filter(matches);
+    const loud = inside.filter((row) => !isMuted(row));
     folders.push({
       personal: false,
       startIn: null,
       ...base,
-      badge: base.kind === "attention" ? inside.length : inside.filter((row) => row.unread).length,
-      lane: mostUrgentLane(inside),
+      badge: base.kind === "attention" ? loud.length : loud.filter((row) => row.unread).length,
+      lane: mostUrgentLane(loud),
       matches,
     });
   };
@@ -284,7 +287,7 @@ export function buildFolders(
         break;
       case "attention":
         // Stays put even when empty, so the strip never shifts.
-        add({ ...common, id: "attention" }, needsAttention);
+        add({ ...common, id: "attention" }, (row) => needsAttention(row) && !isMuted(row));
         break;
       case "archive":
         folders.push({
