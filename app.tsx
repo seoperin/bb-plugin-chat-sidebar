@@ -5,11 +5,12 @@ import "./app.css";
 import { definePluginApp } from "@get-bb/plugin-sdk/app";
 
 import { ChatList } from "./components/chat-list";
-import { addToFolderAction, registerMenuIcons } from "./components/thread-actions";
+import { addToFolderAction, moveToSectionAction, registerMenuIcons } from "./components/thread-actions";
 
 export default definePluginApp((app) => {
   registerMenuIcons(app);
   app.slots.experimental_threadAction(addToFolderAction);
+  app.slots.experimental_threadAction(moveToSectionAction);
   app.slots.experimental_threadList({
     id: "chats",
     title: "Chats",

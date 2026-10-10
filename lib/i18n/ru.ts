@@ -184,6 +184,9 @@ export const ru: Messages = {
   "folders.reset": "Сбросить к стандартным папкам",
 
   "menu.addToFolder": "Добавить в папку",
+  "menu.moveToSection": "Переместить в секцию",
+  "menu.noSection": "Без секции",
+  "toast.moveFailed": "Не удалось переместить чат",
   "menu.newFolderWith": "Новая папка с этим чатом",
 
   "toast.linkCopied": "Ссылка скопирована",

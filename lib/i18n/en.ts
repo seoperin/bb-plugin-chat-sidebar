@@ -182,6 +182,9 @@ export const en = {
   "folders.reset": "Reset to default folders",
 
   "menu.addToFolder": "Add to folder",
+  "menu.moveToSection": "Move to section",
+  "menu.noSection": "No section",
+  "toast.moveFailed": "Couldn’t move the chat",
   "menu.newFolderWith": "New folder with this chat",
 
   // Toasts

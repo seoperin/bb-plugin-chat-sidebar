@@ -4,19 +4,24 @@
 // the long-press drawer on phones) from one registry, and this plugin adds to
 // it in two ways:
 //
-// - "Add to folder" is a registration, so it also shows in the thread
-//   header's menu. Registrations run outside the list, so the list publishes
-//   what the action needs (folders, rows, the editor) to a small store here
-//   while it is mounted; with the list closed the action hides.
+// - "Add to folder" and "Move to section" are registrations, so they also
+//   show in the thread header's menu. Registrations run outside the list, so
+//   the list publishes what they need (folders, rows, the editor, the
+//   translator) to a small store here while it is mounted; with the list
+//   closed they hide. bb's own "Move to section" only appears while its own
+//   list is in its chronological mode, which this list replaces.
 // - The rest of the row menu's own items (sub-agents, a project's colour, a
 //   new chat in the project, reading a folded row) belong to the list alone
 //   and go in as inline items of its menu.
 //
 // Icons in bb's menus are names, so the colour dots and status dots the old
 // menu drew are registered as icons under this plugin's namespace.
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
+import { toast } from "sonner";
 import {
   experimental_THREAD_ACTION_GROUPS as GROUPS,
+  experimental_useSidebarThreads,
+  type PluginSidebarSection,
   type PluginAppBuilder,
   type PluginSidebarThread,
   type PluginThreadActionRegistration,
@@ -158,6 +163,51 @@ export const addToFolderAction: PluginThreadActionRegistration<FolderBridge | nu
         const entry = custom.find((candidate) => candidate.id === value);
         if (entry === undefined) return;
         data.updateEntry(entry.id, { rule: withChat(entry.rule!, row, !matchesRule(row, entry.rule!, Date.now())) });
+      },
+    };
+  },
+};
+
+const NO_SECTION = "__none__";
+
+interface SectionData {
+  t: Translator["t"];
+  sections: readonly PluginSidebarSection[];
+}
+
+function useSectionData(): SectionData | null {
+  const data = useSyncExternalStore(subscribe, () => bridge);
+  const { sections } = experimental_useSidebarThreads();
+  const t = data?.t;
+  return useMemo(() => (t === undefined || sections.length === 0 ? null : { t, sections }), [t, sections]);
+}
+
+/** File a root chat under one of bb's sections, or take it out. Hidden while there are none. */
+export const moveToSectionAction: PluginThreadActionRegistration<SectionData | null> = {
+  id: "move-to-section",
+  title: "Move to section",
+  icon: "SectionMove",
+  group: GROUPS.organize,
+  order: 91,
+  useData: useSectionData,
+  item: ({ thread, data, sdk }) => {
+    if (data === null || thread.parentThreadId !== null || thread.archivedAt !== null) return null;
+    const { t, sections } = data;
+    const current = thread.sectionId ?? NO_SECTION;
+    return {
+      label: t("menu.moveToSection"),
+      detail: sections.find((section) => section.id === thread.sectionId)?.name,
+      icon: "SectionMove",
+      choices: {
+        items: [
+          { id: NO_SECTION, label: t("menu.noSection"), selected: current === NO_SECTION },
+          ...sections.map((section) => ({ id: section.id, label: section.name, selected: current === section.id })),
+        ],
+      },
+      run: ({ value }) => {
+        if (value === undefined || value === current) return;
+        const sectionId = value === NO_SECTION ? null : value;
+        void sdk.threads.update({ threadId: thread.id, sectionId }).catch(() => toast.error(t("toast.moveFailed")));
       },
     };
   },
