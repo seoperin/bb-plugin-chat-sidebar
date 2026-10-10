@@ -30,13 +30,13 @@ export function FolderGlyph({
   selected?: boolean;
   /** Mark the selection with a ring. */
   ring?: boolean;
-  /** "lg" is the icons-only rail's: a 40px square that rounds less when selected or hovered, as in Discord. */
+  /** "lg" is the icons-only rail's 40px square. */
   size?: "lg" | "md" | "sm";
 }) {
   const { colorOf } = useProjectColors();
   const box =
     size === "lg"
-      ? cn("size-10 transition-[border-radius] duration-150", selected ? "rounded-[12px]" : "rounded-[15px] group-hover:rounded-[12px]")
+      ? "size-10 rounded-[13px]"
       : size === "md"
         ? "size-8 rounded-[10px]"
         : "size-6 rounded-[7px]";
@@ -68,7 +68,7 @@ export function FolderGlyph({
           ? cn("text-white", selectedRing)
           : selected
             ? "bg-foreground text-background"
-            : "bg-sidebar-accent/70 text-muted-foreground group-hover:text-foreground",
+            : "bg-sidebar-accent text-foreground",
       )}
       style={fill !== null ? { background: avatarBackground(fill) } : undefined}
     >

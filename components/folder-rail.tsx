@@ -3,8 +3,7 @@
 // most urgent status. Projects show their colour and initial, the same as
 // their chats' avatars. With names turned off the rail keeps only the icons,
 // laid out the way Discord's server rail is: larger squares with room between
-// them that round less when open or hovered, and badges cut out of the
-// square's corner. The name stays in the tooltip and for
+// them, and badges cut out of the square's corner. The name stays in the tooltip and for
 // screen readers. The rail scrolls on its own, independently of the list, and
 // ends with the button that opens the folder editor. Folders are dragged to
 // reorder, a folder per project or per section as one block.

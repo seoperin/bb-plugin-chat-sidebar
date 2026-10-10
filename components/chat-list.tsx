@@ -297,7 +297,7 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
       projects={projectsInUse}
       onNavigate={onNavigate}
       // On the icons-only rail it matches the folders' squares.
-      className={rail && !settings.folderNames ? "size-10 rounded-[15px] hover:rounded-[12px] [&_svg]:size-5" : undefined}
+      className={rail && !settings.folderNames ? "size-10 rounded-[13px] bg-sidebar-accent text-foreground [&_svg]:size-5" : undefined}
     />
   );
 
