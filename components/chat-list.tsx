@@ -42,6 +42,7 @@ import {
 } from "@/lib/model";
 import { parseStringArray, readStored, writeStored } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { ArchivedHits } from "./archived-hits";
 import { BackToTop } from "./back-to-top";
 import { ChatProvider, useChat } from "./chat-context";
 import { ChatRow, SortableChatRow, type ProviderSummary } from "./chat-row";
@@ -237,6 +238,10 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   const shown = hidesQuiet ? matched.filter((chat) => !isQuiet(chat, cutoff)) : matched;
   const hiddenQuiet = matched.length - shown.length;
 
+  // Archive hits go under the results; in the archive folder, only those its loaded pages do not show.
+  const shownIds = new Set(shown.map((chat) => chat.thread.id));
+  const archivedHits = needle === "" ? [] : messageSearch.archived.filter((hit) => !shownIds.has(hit.id));
+
   const paging = usePaging(shown.length, PAGE_SIZE, `${activeFolder}\n${needle}`);
   const visible = shown.slice(0, paging.limit);
 
@@ -287,7 +292,9 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
     needle !== ""
       ? messageSearch.loading
         ? t("search.searching")
-        : t("search.nothing", { query: query.trim() })
+        : archivedHits.length > 0
+          ? t("search.onlyArchived")
+          : t("search.nothing", { query: query.trim() })
       : archiveMode
         ? archivePages?.status === "loading"
           ? t("list.archiveLoading")
@@ -401,7 +408,8 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
                   {t("list.hiddenQuiet", { count: hiddenQuiet })}
                 </button>
               ) : null}
-              {archiveMode && archivePages?.hasNextPage ? (
+              <ArchivedHits hits={archivedHits} projects={projects} now={now} onOpen={open} />
+            {archiveMode && archivePages?.hasNextPage ? (
                 <button
                   type="button"
                   disabled={archivePages.isFetchingNextPage}

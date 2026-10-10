@@ -63,7 +63,26 @@ async function render(
                   : [],
               total: 0,
             },
-            archived: { results: [], total: 0 },
+            archived: {
+              results:
+                query === "old notes"
+                  ? [
+                      {
+                        thread: {
+                          id: "thr_gone",
+                          title: "Retired spike",
+                          titleFallback: null,
+                          projectId: "proj_a",
+                          providerId: "codex",
+                          environmentBranchName: "spike",
+                          updatedAt: NOW - 86_400_000,
+                        },
+                        matches: [{ sourceKind: "user_message", text: "see the old notes", highlightRanges: [{ start: 8, end: 17 }], sourceSeq: 2 }],
+                      },
+                    ]
+                  : [],
+              total: 0,
+            },
           }),
         } as never,
       },
@@ -135,6 +154,17 @@ describe("chat list", () => {
       { method: "toCompose", options: { projectId: "proj_b", focusPrompt: true } },
     ]);
     expect(onNavigate).toHaveBeenCalledTimes(2);
+  });
+
+  it("lists archived chats the search finds under the results", async () => {
+    const { view } = await render({ language: "English" });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "old notes" } });
+    expect(await screen.findByText("In the archive · 1")).toBeTruthy();
+    expect(screen.getByText("Found only in the archive")).toBeTruthy();
+    const link = screen.getByText("Retired spike").closest("a");
+    expect(link?.getAttribute("href")).toBe("/projects/proj_a/threads/thr_gone");
+    fireEvent.click(link!, { button: 0 });
+    expect(view.inspection.navigateCalls).toEqual([{ method: "toThread", threadId: "thr_gone", options: { split: false } }]);
   });
 
   it("marks a chat whose notifications are muted in bb", async () => {

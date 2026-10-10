@@ -30,6 +30,9 @@ export const en = {
   "search.label": "Search chats",
   "search.clear": "Clear search",
   "search.nothing": "Nothing matches “{query}”",
+  "search.archived": "In the archive · {count}",
+  "search.archivedMore": "Show {count} more",
+  "search.onlyArchived": "Found only in the archive",
   "search.searching": "Searching messages…",
   "search.you": "You: ",
 

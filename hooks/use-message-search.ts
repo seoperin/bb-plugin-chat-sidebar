@@ -4,6 +4,10 @@
 // matched locally and at once; this adds the chats that only their messages
 // would find. Results arrive after a short pause in typing, and a newer query
 // cancels the request before it.
+//
+// Archived chats come back too. bb hands the list its archive a page at a
+// time, so a hit there is kept with the thread fields the search returns,
+// and the list can show it whether or not that page is loaded.
 import { useEffect, useState } from "react";
 import { useSdk } from "@get-bb/plugin-sdk/app";
 
@@ -17,15 +21,29 @@ export interface MessageMatch {
   from: "user" | "assistant" | "system";
 }
 
+/** A chat in the archive the search found, by its title or its messages. */
+export interface ArchivedHit {
+  id: string;
+  title: string;
+  projectId: string;
+  providerId: string;
+  branch: string | null;
+  updatedAt: number;
+  /** The message it was found by; null when its title matched. */
+  match: MessageMatch | null;
+}
+
 export interface MessageSearch {
   /** The best message match per thread id; titles are left to the local search. */
   matches: ReadonlyMap<string, MessageMatch>;
+  /** Hits in the archive, newest first. */
+  archived: readonly ArchivedHit[];
   /** The query these matches are for, so stale ones are never shown for a new query. */
   query: string;
   loading: boolean;
 }
 
-const EMPTY: MessageSearch = { matches: new Map(), query: "", loading: false };
+const EMPTY: MessageSearch = { matches: new Map(), archived: [], query: "", loading: false };
 const FROM = { user_message: "user", assistant_message: "assistant", system_message: "system" } as const;
 
 export function useMessageSearch(query: string, includeArchived: boolean): MessageSearch {
@@ -57,7 +75,27 @@ export function useMessageSearch(query: string, includeArchived: boolean): Messa
               });
             }
           }
-          setState({ matches, query: trimmed, loading: false });
+          const archived: ArchivedHit[] = response.archived.results.map(({ thread, matches: found }) => {
+            const match = found.find((candidate) => candidate.sourceKind in FROM);
+            return {
+              id: thread.id,
+              title: thread.title ?? thread.titleFallback ?? thread.id,
+              projectId: thread.projectId,
+              providerId: thread.providerId,
+              branch: thread.environmentBranchName,
+              updatedAt: thread.updatedAt,
+              match:
+                match === undefined
+                  ? null
+                  : {
+                      text: match.text,
+                      highlightRanges: match.highlightRanges,
+                      from: FROM[match.sourceKind as keyof typeof FROM],
+                    },
+            };
+          });
+          archived.sort((a, b) => b.updatedAt - a.updatedAt);
+          setState({ matches, archived, query: trimmed, loading: false });
         })
         .catch(() => {
           if (!controller.signal.aborted) setState({ ...EMPTY, query: trimmed });

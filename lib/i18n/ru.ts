@@ -21,6 +21,9 @@ export const ru: Messages = {
   "search.label": "Поиск по чатам",
   "search.clear": "Очистить поиск",
   "search.nothing": "Ничего не нашлось по «{query}»",
+  "search.archived": "В архиве · {count}",
+  "search.archivedMore": "Ещё {count}",
+  "search.onlyArchived": "Нашлось только в архиве",
   "search.searching": "Ищу в сообщениях…",
   "search.you": "Вы: ",
 

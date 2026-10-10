@@ -161,7 +161,7 @@ function TimeOrShortcut({ row, now }: { row: Chat; now: number }) {
 const SNIPPET_LEAD = 16;
 
 /** The message search found the chat by: the matched words stand out. */
-function Snippet({ match }: { match: MessageMatch }) {
+export function Snippet({ match }: { match: MessageMatch }) {
   const { t } = useChat().i18n;
   const ranges = [...match.highlightRanges].sort((a, b) => a.start - b.start);
   // The sidebar is narrow and the snippet two lines: start a few words before
