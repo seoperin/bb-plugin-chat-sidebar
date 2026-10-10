@@ -2,7 +2,7 @@
 // two data attributes bb's thread shortcuts (⌘1…9, next/previous) look for,
 // and with bb's split-drag handler, so it behaves like bb's own row. A pinned
 // row is also sortable: its <li> takes the drag, its anchor the split.
-import { useMemo, useState, type MouseEvent } from "react";
+import { useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import {
   ThreadTitle,
   experimental_Icon as RegisteredIcon,
@@ -16,6 +16,7 @@ import {
 } from "@get-bb/plugin-sdk/app";
 
 import { Icon } from "@/components/ui/icon";
+import type { MessageMatch } from "@/hooks/use-message-search";
 import { useSortableItem, type SortableBindings } from "@/hooks/use-sortable";
 import { avatarBackground } from "@/lib/colors";
 import { avatarLetter, type Chat } from "@/lib/model";
@@ -155,6 +156,41 @@ function TimeOrShortcut({ row, now }: { row: Chat; now: number }) {
   );
 }
 
+const SNIPPET_LEAD = 16;
+
+/** The message search found the chat by: the matched words stand out. */
+function Snippet({ match }: { match: MessageMatch }) {
+  const { t } = useChat().i18n;
+  const ranges = [...match.highlightRanges].sort((a, b) => a.start - b.start);
+  // The sidebar is narrow and the snippet two lines: start a few words before
+  // the first match, so the match is what shows.
+  const first = ranges[0]?.start ?? 0;
+  let from = 0;
+  if (first > SNIPPET_LEAD) {
+    const space = match.text.lastIndexOf(" ", first - SNIPPET_LEAD);
+    from = space === -1 ? first - SNIPPET_LEAD : space + 1;
+  }
+  const parts: ReactNode[] = from > 0 ? ["…"] : [];
+  let at = from;
+  for (const range of ranges) {
+    if (range.start < at) continue;
+    if (range.start > at) parts.push(match.text.slice(at, range.start));
+    parts.push(
+      <mark key={range.start} className="bg-transparent font-semibold text-foreground">
+        {match.text.slice(range.start, range.end)}
+      </mark>,
+    );
+    at = range.end;
+  }
+  parts.push(match.text.slice(at));
+  return (
+    <span className="mt-0.5 line-clamp-2 whitespace-normal break-words text-[11.5px] leading-snug text-muted-foreground">
+      {match.from === "user" ? <span className="text-foreground/70">{t("search.you")}</span> : null}
+      {parts}
+    </span>
+  );
+}
+
 function UnreadDot({ muted }: { muted: boolean }) {
   const { t } = useChat().i18n;
   return (
@@ -188,6 +224,7 @@ export function ChatRow({
   showProject,
   showHost,
   sortable,
+  snippet,
   onOpen,
 }: {
   row: Chat;
@@ -200,6 +237,8 @@ export function ChatRow({
   showHost: boolean;
   /** Pinned rows only: dragging reorders the pins (see `hooks/use-sortable.ts`). */
   sortable: SortableBindings | null;
+  /** While searching: the message the chat was found by, when its title was not. */
+  snippet?: MessageMatch;
   onOpen: (threadId: string, split: boolean) => void;
 }) {
   const { settings, i18n } = useChat();
@@ -258,12 +297,22 @@ export function ChatRow({
             }}
             className={cn(
               "group flex select-none items-center rounded-lg text-sidebar-foreground no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-              compact ? "h-8 gap-2 px-2 text-[13px]" : "gap-3 px-2 py-2 text-[13.5px]",
+              compact
+                ? cn("gap-2 px-2 text-[13px]", snippet === undefined ? "h-8" : "min-h-8 py-1")
+                : "gap-3 px-2 py-2 text-[13.5px]",
               active ? "bg-sidebar-accent text-foreground" : "hover:bg-sidebar-accent/60",
             )}
           >
             <Avatar row={row} size={compact ? "sm" : "md"} />
-            {compact ? (
+            {compact && snippet !== undefined ? (
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5">
+                  {title}
+                  <TimeOrShortcut row={row} now={now} />
+                </span>
+                <Snippet match={snippet} />
+              </span>
+            ) : compact ? (
               <>
                 {title}
                 <span className="flex max-w-[45%] shrink-0 items-center gap-1.5 text-[11px]">
@@ -291,6 +340,7 @@ export function ChatRow({
                   <WhereLine row={row} provider={provider} showProject={showProject} showHost={showHost} />
                   {row.unread ? <UnreadDot muted={mutedIcon !== null} /> : null}
                 </span>
+                {snippet !== undefined ? <Snippet match={snippet} /> : null}
               </span>
             )}
           </a>

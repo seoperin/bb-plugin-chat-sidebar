@@ -24,6 +24,7 @@ import {
 import { DndContext } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
+import { useMessageSearch, type MessageMatch } from "@/hooks/use-message-search";
 import { usePaging } from "@/hooks/use-paging";
 import { usePinnedOrder } from "@/hooks/use-pinned-order";
 import { useScrollArea } from "@/hooks/use-scroll-area";
@@ -209,8 +210,20 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   const [draggingPin, setDraggingPin] = useState(false);
 
   const needle = query.trim().toLocaleLowerCase();
+  const messageSearch = useMessageSearch(query, archiveMode);
+  // A chat its title does not find may still be found by its messages, its
+  // folded sub-agents' included; that match is shown under its title.
+  const snippetOf = (chat: Chat): MessageMatch | undefined => {
+    if (messageSearch.matches.size === 0 || matchesQuery(chat, needle)) return undefined;
+    return (
+      messageSearch.matches.get(chat.thread.id) ??
+      chat.children.map((child) => messageSearch.matches.get(child.id)).find((match) => match !== undefined)
+    );
+  };
   const matched = (archiveMode ? archivedChats : ordered).filter(
-    (chat) => (archiveMode || currentFolder === null || currentFolder.matches(chat)) && matchesQuery(chat, needle),
+    (chat) =>
+      (archiveMode || currentFolder === null || currentFolder.matches(chat)) &&
+      (matchesQuery(chat, needle) || snippetOf(chat) !== undefined),
   );
   // Quiet old chats hide behind one button; search and Attention see all.
   const cutoff = settings.hideQuietAfterDays > 0 ? now - settings.hideQuietAfterDays * DAY : null;
@@ -247,6 +260,7 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
       provider: providerById.get(chat.thread.providerId) ?? null,
       showProject,
       showHost,
+      snippet: needle === "" ? undefined : snippetOf(chat),
       onOpen: open,
     };
     return pinDragAllowed && chat.thread.isPinned ? (
@@ -266,7 +280,9 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
 
   const emptyText =
     needle !== ""
-      ? t("search.nothing", { query: query.trim() })
+      ? messageSearch.loading
+        ? t("search.searching")
+        : t("search.nothing", { query: query.trim() })
       : archiveMode
         ? archivePages?.status === "loading"
           ? t("list.archiveLoading")

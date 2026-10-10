@@ -41,6 +41,28 @@ async function render(settings: Record<string, string | number | boolean> = {}) 
     {
       sidebarThreads: { status: "ready", threads, projects, sections: [] },
       settings,
+      sdk: {
+        threads: {
+          // Only "deploy logs" is in a message (of the sub-agent folded into thr_wait).
+          search: async ({ query }: { query: string }) => ({
+            active: {
+              results:
+                query === "deploy logs"
+                  ? [
+                      {
+                        thread: { id: "thr_child" },
+                        matches: [
+                          { sourceKind: "assistant_message", text: "…read the deploy logs first", highlightRanges: [{ start: 10, end: 21 }], sourceSeq: 1 },
+                        ],
+                      },
+                    ]
+                  : [],
+              total: 0,
+            },
+            archived: { results: [], total: 0 },
+          }),
+        } as never,
+      },
       rpc: { colors_get: () => ({ proj_b: "pink" }), colors_set: (input) => {
           const { projectId, color } = input as { projectId: string; color: string | null };
           return color === null ? {} : { [projectId]: color };
@@ -88,7 +110,15 @@ describe("chat list", () => {
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "sub task" } });
     expect(rowIds()).toEqual(["thr_wait"]);
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "zzz" } });
-    expect(screen.getByText("Nothing matches “zzz”")).toBeTruthy();
+    expect(await screen.findByText("Nothing matches “zzz”")).toBeTruthy();
+  });
+
+  it("finds a chat by its messages and shows the match", async () => {
+    const { view } = await render({ language: "English" });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "deploy logs" } });
+    const mark = await screen.findByText("deploy logs", { selector: "mark" });
+    expect(mark.closest("li")?.getAttribute("data-chat-row")).toBe("thr_wait");
+    expect(view.container.querySelectorAll("a[data-sidebar-thread-id]")).toHaveLength(1);
   });
 
   it("starts a new chat in the open project's folder", async () => {

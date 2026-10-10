@@ -21,6 +21,8 @@ export const ru: Messages = {
   "search.label": "Поиск по чатам",
   "search.clear": "Очистить поиск",
   "search.nothing": "Ничего не нашлось по «{query}»",
+  "search.searching": "Ищу в сообщениях…",
+  "search.you": "Вы: ",
 
   "list.label": "Чаты",
   "list.loading": "Загружаю чаты…",

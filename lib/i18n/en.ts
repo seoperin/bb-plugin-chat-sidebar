@@ -30,6 +30,8 @@ export const en = {
   "search.label": "Search chats",
   "search.clear": "Clear search",
   "search.nothing": "Nothing matches “{query}”",
+  "search.searching": "Searching messages…",
+  "search.you": "You: ",
 
   // List states
   "list.label": "Chats",
