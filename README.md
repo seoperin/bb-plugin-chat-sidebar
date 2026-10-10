@@ -28,7 +28,8 @@ view, so nothing about how bb works changes.
 - **Folders.** All, Attention (waiting, working, or unread), one per project in
   order of use, one per bb section, and Archive. Each has an unread badge and
   a status dot. Show them as tabs above the list, or as a Telegram-style rail
-  on the left that scrolls on its own. Drag a folder to move it.
+  on the left that scrolls on its own. Without names the rail lays out roomier
+  icons, Discord-style. Drag a folder to move it.
 - **Your own folders.** Like Telegram's: pick chats by status, project,
   section, agent, words in the title or branch, how long they have waited, or
   when they were last active, and add or leave out chats by hand. Ready-made
@@ -42,7 +43,19 @@ view, so nothing about how bb works changes.
   colour.
 - **New chat in context.** The **+** starts a chat in the open project or
   section. Right-click it to choose any project.
-- **Search** by title, project, branch, or sub-agent.
+- **Search** by title, project, branch, or sub-agent, and inside the
+  conversations: a chat that only its messages mention shows up too, with the
+  matching words under its title.
+- **bb's own thread menu.** Right-click a chat for the same menu as bb's
+  rows and thread header: split, copy link, read, pin, rename, archive,
+  delete, per-thread notifications, and whatever other plugins add, plus the
+  list's own items (sub-agents, project colour, new chat in the project).
+  **Add to folder** is in the thread header's menu as well.
+- **Muted chats** (bb's notifications set to Muted) show a muted bell and a
+  grey unread dot.
+- **Row buttons.** Pick up to three actions from that menu to show at the
+  right of a chat while you point at it: right-click a chat → Row buttons…
+  The pick syncs across your devices.
 - **Messenger order.** Pinned chats sit on top in your order (drag to
   reorder), the rest follow by latest activity. A back-to-top button appears
   once you scroll.
@@ -54,14 +67,15 @@ view, so nothing about how bb works changes.
 ## Install
 
 ```sh
-bb plugin install git:https://github.com/seoperin/bb-plugin-chat-sidebar.git@^0.1.0
+bb plugin install git:https://github.com/seoperin/bb-plugin-chat-sidebar.git@^0.2.0
 ```
 
 bb uses the first thread-list plugin you install. If you already chose
 another one, pick **Chats** under **Settings → Appearance → Sidebar**. Pick
 bb's own list there to switch back at any time.
 
-Requires bb 0.44 or later.
+Requires bb 0.46 or later. On bb 0.44–0.45, 0.2.1 is the last version that
+works.
 
 ## Using it
 
@@ -95,7 +109,7 @@ bb plugin config chat-sidebar unset folderLayout        # back to the default
 | `language` | `Auto`, `English`, `Русский` | `Auto` |
 | `projects` | `Folders`, `List headers`, `Off` | `Folders` |
 | `folderLayout` | `Tabs above the list`, `Rail on the left` | `Tabs above the list` |
-| `folderNames` | names under the rail's icons; off leaves a narrower, icon-only rail | `true` |
+| `folderNames` | names under the rail's icons; off leaves an icon-only rail | `true` |
 | `density` | `Comfortable`, `Compact` | `Comfortable` |
 | `stickyHeadings` | keep the current project heading under the tabs (`List headers`) | `true` |
 | `sectionFolders` | a folder per bb section | `true` |
@@ -110,8 +124,9 @@ way round.
 ## Data and privacy
 
 The plugin makes no network requests of its own and needs no accounts or
-keys. It reads threads through bb's plugin SDK. Project colours, the folder
-layout and its last 20 versions are stored in the plugin's key-value storage
+keys. It reads threads through bb's plugin SDK; message search goes through
+bb's own thread search. Project colours, the folder layout and its last 20
+versions, and the row buttons are stored in the plugin's key-value storage
 inside bb. The open folder and collapsed headings are remembered in the
 browser's localStorage, along with a copy of the project colours and folders
 so they show before bb answers.
@@ -130,8 +145,8 @@ bb plugin reload chat-sidebar # after each change
 The code is laid out like this:
 
 ```
-app.tsx                 registers the thread-list slot
-server.ts               settings, project colours and folders (RPC + realtime)
+app.tsx                 registers the thread-list slot, Add to folder, and menu icons
+server.ts               settings, project colours, folders, row buttons (RPC + realtime)
 lib/                    pure logic, unit-tested
   model.ts              chats, folding, folders, project groups, search, pin order
   folders.ts            the folder layout, custom folder rules, templates, icons
@@ -143,7 +158,7 @@ lib/                    pure logic, unit-tested
   settings.ts           setting definitions and parsing
 components/             the UI (chat-list.tsx puts it together)
   folder-editor/        the folder editor dialog (a bottom sheet on phones)
-hooks/                  scroll area, paging, pinned order, drag to reorder (dnd-kit)
+hooks/                  scroll area, paging, pinned order, drag to reorder (dnd-kit), message search
 assets/icons/           folder icons from Hugeicons, declared in the manifest
 components/ui/          components vendored from bb's plugin registry
 test/                   vitest, including a rendered-list test with bb's SDK test harness
@@ -162,6 +177,13 @@ A few details that matter if you change things:
   sticky search bar scrolls away.
 - The frontend imports only types from `lib/rpc.ts`, which keeps zod out of
   the app bundle.
+- The row menu is bb's (`experimental_ThreadActionsContextMenu`); the list
+  adds inline items to it. "Add to folder" is a registration
+  (`components/thread-actions.tsx`), so it runs outside the list and reads
+  the folders from a store the list publishes while it is mounted.
+- bb's sidebar container has Tailwind's bare `group` class, so a bare
+  `group-hover:` in the list fires whenever the pointer is anywhere over the
+  sidebar. Use named groups (`group/row`, `group/entry`).
 - A folder save names the revision it was made on, and the backend refuses
   one made on an older revision, so a device that was offline cannot undo
   newer folders.

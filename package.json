@@ -1,6 +1,6 @@
 {
   "name": "bb-plugin-chat-sidebar",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Read your threads like a messenger: one row per task with live status, an Attention folder, project tabs, and search.",
   "license": "MIT",
   "author": "Evgeniy Perin",
@@ -22,8 +22,8 @@
   ],
   "type": "module",
   "engines": {
-    "bb": ">=0.44",
-    "bbPluginSdk": ">=0.5.29"
+    "bb": ">=0.46",
+    "bbPluginSdk": ">=0.6.37"
   },
   "bb": {
     "name": "Chat Sidebar",

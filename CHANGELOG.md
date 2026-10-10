@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.2.2
+
+Follows bb 0.46, which needs this version: 0.2.1 is the last one for bb 0.44–0.45.
+
+- **bb's own thread menu.** Right-clicking a chat opens the same menu as bb's
+  rows and thread header, so it now has bb's per-thread notifications and
+  whatever other plugins add, next to the list's own items (sub-agents,
+  project colour, new chat in the project, reading a whole folded row).
+  **Add to folder** shows in the thread header's menu too.
+- **Search inside messages.** From three letters, the search also asks bb's
+  thread search, so a chat that only its messages mention shows up, with the
+  matching words under its title.
+- **Muted chats.** A chat whose bb notifications are muted shows a muted bell,
+  and its unread dot turns grey.
+- **Row buttons.** Pick up to three actions from the menu (right-click a chat →
+  Row buttons…) to show at the right of a chat on hover. None are picked to
+  begin with, and the pick syncs across your devices.
+- **Roomier icons-only rail.** With folder names off, folders are 40px
+  squares with more space between them, badges sit at the corner, and the +
+  matches them, above a divider.
+- Folder names on the rail no longer stay dim until the pointer is over the
+  sidebar.
+- Built with plugin SDK 0.6.37. Opening chats and starting new ones go
+  through `useBbNavigate`, renaming through `threads.update`, marking read
+  through `threads.markRead`.
+
 ## 0.2.1
 
 - **Icons-only rail.** A new setting, **Folder names on the rail**, turns off
