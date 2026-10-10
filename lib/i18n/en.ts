@@ -49,6 +49,7 @@ export const en = {
 
   // Row
   "row.pinned": "Pinned",
+  "row.muted": "Notifications off",
   "row.unread": "Unread",
   "row.draft": "Draft",
   "row.subAgents": { one: "+{count} sub-agent", other: "+{count} sub-agents" },

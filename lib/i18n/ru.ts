@@ -40,6 +40,7 @@ export const ru: Messages = {
   },
 
   "row.pinned": "Закреплён",
+  "row.muted": "Уведомления выключены",
   "row.unread": "Непрочитано",
   "row.draft": "Черновик",
   "row.subAgents": {

@@ -2,11 +2,13 @@
 // two data attributes bb's thread shortcuts (⌘1…9, next/previous) look for,
 // and with bb's split-drag handler, so it behaves like bb's own row. A pinned
 // row is also sortable: its <li> takes the drag, its anchor the split.
-import { useState, type MouseEvent } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 import {
   ThreadTitle,
+  experimental_Icon as RegisteredIcon,
   experimental_ProviderIcon as ProviderIcon,
   experimental_useProviders,
+  experimental_useThreadActions,
   experimental_useSidebarThreadSplit,
   useSidebarThreadDraft,
   useSidebarThreadRowStatus,
@@ -24,6 +26,7 @@ import { useChat } from "./chat-context";
 import { ChatMenu } from "./chat-menu";
 import { useProjectColors } from "./project-colors";
 import { RenameInput } from "./rename-input";
+import { toActionTarget } from "./thread-actions";
 
 export type ProviderSummary = ReturnType<typeof experimental_useProviders>["providers"][number];
 
@@ -152,9 +155,29 @@ function TimeOrShortcut({ row, now }: { row: Chat; now: number }) {
   );
 }
 
-function UnreadDot() {
+function UnreadDot({ muted }: { muted: boolean }) {
   const { t } = useChat().i18n;
-  return <span role="img" aria-label={t("row.unread")} className="chat-unread size-2 shrink-0 rounded-full" />;
+  return (
+    <span
+      role="img"
+      aria-label={t("row.unread")}
+      className={cn("size-2 shrink-0 rounded-full", muted ? "bg-muted-foreground/50" : "chat-unread")}
+    />
+  );
+}
+
+// bb's notifications plugin adds a per-thread level to the thread menu. Its
+// evaluated action is the only public read of that level, and its icon says
+// which level is in effect, a parent's cap included.
+const NOTIFICATIONS_ACTION = "push-notifications/notifications";
+const MUTED_ICON = "push-notifications/off";
+const NOTIFICATION_KEYS = [NOTIFICATIONS_ACTION];
+
+/** The muted glyph when bb's notifications are off for the thread, else null. */
+function useMutedIcon(thread: Chat["thread"]): string | null {
+  const target = useMemo(() => toActionTarget(thread), [thread]);
+  const [entry] = experimental_useThreadActions(target, { keys: NOTIFICATION_KEYS });
+  return entry?.action.icon === MUTED_ICON ? MUTED_ICON : null;
 }
 
 export function ChatRow({
@@ -186,6 +209,10 @@ export function ChatRow({
   const shortcut = useSidebarThreadShortcut(thread.id);
   const [renaming, setRenaming] = useState(false);
   const compact = settings.density === "compact";
+  const mutedIcon = useMutedIcon(thread);
+  const muted = mutedIcon !== null ? (
+    <RegisteredIcon name={mutedIcon} aria-label={t("row.muted")} className="size-3 shrink-0 text-muted-foreground" />
+  ) : null;
 
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
     // Shift and Alt keep the browser's own link behaviour.
@@ -241,10 +268,11 @@ export function ChatRow({
                 {title}
                 <span className="flex max-w-[45%] shrink-0 items-center gap-1.5 text-[11px]">
                   <StatusBadge row={row} active={active} />
+                  {muted}
                   {thread.isPinned ? (
                     <Icon name="Pin" aria-label={t("row.pinned")} className="size-3 shrink-0 text-muted-foreground" />
                   ) : null}
-                  {row.unread ? <UnreadDot /> : null}
+                  {row.unread ? <UnreadDot muted={mutedIcon !== null} /> : null}
                   <TimeOrShortcut row={row} now={now} />
                 </span>
               </>
@@ -252,6 +280,7 @@ export function ChatRow({
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
                   {title}
+                  {muted}
                   {thread.isPinned ? (
                     <Icon name="Pin" aria-label={t("row.pinned")} className="size-3 shrink-0 text-muted-foreground" />
                   ) : null}
@@ -260,7 +289,7 @@ export function ChatRow({
                 <span className="mt-1 flex h-4 items-center gap-1.5 text-[11.5px]">
                   <StatusBadge row={row} active={active} />
                   <WhereLine row={row} provider={provider} showProject={showProject} showHost={showHost} />
-                  {row.unread ? <UnreadDot /> : null}
+                  {row.unread ? <UnreadDot muted={mutedIcon !== null} /> : null}
                 </span>
               </span>
             )}
