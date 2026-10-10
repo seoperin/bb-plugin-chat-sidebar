@@ -115,7 +115,7 @@ export function ChatList(props: PluginThreadListProps) {
   );
 }
 
-function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
+function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginThreadListProps) {
   const { settings, i18n } = useChat();
   const { t } = i18n;
   const { layout, setLayout, updateEntry, openEditor } = useFolders();
@@ -141,7 +141,8 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(
     () => new Set(readStored(COLLAPSED_KEY, parseStringArray, [])),
   );
-  const rail = settings.folderLayout === "rail";
+  // On phones bb's rail already takes the left edge; tabs unless told otherwise.
+  const rail = settings.folderLayout === "rail" && !(isCompactViewport && settings.phoneFolderLayout === "tabs");
   const listRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   // Sticky project headings sit right under the search bar and tabs.

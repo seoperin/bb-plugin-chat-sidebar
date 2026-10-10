@@ -191,6 +191,26 @@ describe("chat list", () => {
     expect(registration?.group).toBe("2_organize");
   });
 
+  it("shows folders as tabs on a phone even when the rail is picked", async () => {
+    const loaded = await loadPluginApp(app);
+    const strip = (isCompactViewport: boolean, phoneFolderLayout?: string) => {
+      const view = renderSlot(
+        loaded.threadLists[0]!,
+        { activeThreadId: null, activeProjectId: null, isCompactViewport, onNavigate: vi.fn(), searchQuery: "" },
+        {
+          sidebarThreads: { status: "ready", threads, projects, sections: [] },
+          settings: { folderLayout: "Rail on the left", ...(phoneFolderLayout ? { phoneFolderLayout } : {}) },
+        },
+      );
+      const tabs = view.container.querySelector(".chat-tab-strip") !== null;
+      view.unmount();
+      return tabs;
+    };
+    expect(strip(false)).toBe(false);
+    expect(strip(true)).toBe(true);
+    expect(strip(true, "Same as on wider screens")).toBe(false);
+  });
+
   it("speaks the language picked in settings", async () => {
     await render({ language: "Русский" });
     expect(screen.getByRole("searchbox").getAttribute("placeholder")).toBe("Поиск по чатам");

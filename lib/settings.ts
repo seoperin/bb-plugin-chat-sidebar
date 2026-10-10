@@ -10,6 +10,7 @@
 export const LANGUAGE_OPTIONS = ["Auto", "English", "Русский"] as const;
 export const PROJECT_OPTIONS = ["Folders", "List headers", "Off"] as const;
 export const FOLDER_LAYOUT_OPTIONS = ["Tabs above the list", "Rail on the left"] as const;
+export const PHONE_LAYOUT_OPTIONS = ["Tabs above the list", "Same as on wider screens"] as const;
 export const DENSITY_OPTIONS = ["Comfortable", "Compact"] as const;
 
 export const SETTINGS = {
@@ -33,6 +34,14 @@ export const SETTINGS = {
     label: "Folder layout",
     description: "Tabs sit above the list. The rail is a narrow column on the left with an icon and a name per folder.",
     options: [...FOLDER_LAYOUT_OPTIONS] as string[],
+    default: "Tabs above the list",
+  },
+  phoneFolderLayout: {
+    type: "select",
+    label: "Folder layout on phones",
+    description:
+      "On a narrow screen bb's navigation rail already sits beside the list, so tabs leave the list more room. Pick the other option to follow Folder layout there too.",
+    options: [...PHONE_LAYOUT_OPTIONS] as string[],
     default: "Tabs above the list",
   },
   folderNames: {
@@ -85,12 +94,14 @@ export const SETTINGS = {
 export type Language = "auto" | "en" | "ru";
 export type ProjectGrouping = "tabs" | "headers" | "off";
 export type FolderLayout = "tabs" | "rail";
+export type PhoneFolderLayout = "tabs" | "same";
 export type Density = "comfortable" | "compact";
 
 export interface ChatSettings {
   language: Language;
   projects: ProjectGrouping;
   folderLayout: FolderLayout;
+  phoneFolderLayout: PhoneFolderLayout;
   folderNames: boolean;
   density: Density;
   stickyHeadings: boolean;
@@ -123,6 +134,11 @@ export function parseSettings(values: Readonly<Record<string, unknown>> | undefi
     folderLayout: pick<FolderLayout>(
       source.folderLayout,
       { "Tabs above the list": "tabs", "Rail on the left": "rail" },
+      "tabs",
+    ),
+    phoneFolderLayout: pick<PhoneFolderLayout>(
+      source.phoneFolderLayout,
+      { "Tabs above the list": "tabs", "Same as on wider screens": "same" },
       "tabs",
     ),
     folderNames: bool(source.folderNames, SETTINGS.folderNames.default),

@@ -8,6 +8,7 @@ describe("parseSettings", () => {
       language: "auto",
       projects: "tabs",
       folderLayout: "tabs",
+      phoneFolderLayout: "tabs",
       folderNames: true,
       density: "comfortable",
       stickyHeadings: true,
@@ -21,10 +22,18 @@ describe("parseSettings", () => {
         language: "Русский",
         projects: "List headers",
         density: "Compact",
+        phoneFolderLayout: "Same as on wider screens",
         archiveFolder: false,
         hideQuietAfterDays: 7.6,
       }),
-    ).toMatchObject({ language: "ru", projects: "headers", density: "compact", archiveFolder: false, hideQuietAfterDays: 8 });
+    ).toMatchObject({
+      language: "ru",
+      projects: "headers",
+      density: "compact",
+      phoneFolderLayout: "same",
+      archiveFolder: false,
+      hideQuietAfterDays: 8,
+    });
     expect(parseSettings({ language: "Klingon", hideQuietAfterDays: -3, foldChildren: "yes" })).toMatchObject({
       language: "auto",
       hideQuietAfterDays: 0,
