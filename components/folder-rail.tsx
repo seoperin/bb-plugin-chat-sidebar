@@ -43,7 +43,7 @@ function RailFolder({
         title={name}
         onClick={() => onSelect(folder.id)}
         className={cn(
-          "group relative flex w-full cursor-pointer select-none flex-col items-center outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "relative flex w-full cursor-pointer select-none flex-col items-center outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           showName ? "gap-1 px-1 py-1.5" : "py-1",
         )}
       >
@@ -86,7 +86,7 @@ function RailFolder({
         <span
           className={cn(
             showName ? "w-full truncate text-center text-[10px] leading-3" : "sr-only",
-            selected ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground",
+            selected ? "font-semibold text-foreground" : "text-sidebar-foreground",
           )}
         >
           {name}
@@ -180,7 +180,7 @@ export function FolderRail({
         title={t("folders.edit")}
         aria-label={t("folders.edit")}
         onClick={() => openEditor(null)}
-        className="group flex shrink-0 cursor-pointer flex-col items-center gap-1 border-t border-sidebar-border px-1 py-1.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex shrink-0 cursor-pointer flex-col items-center gap-1 border-t border-sidebar-border px-1 py-1.5 text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Icon name="SlidersHorizontal" className="size-4" />
         {showNames ? <span className="text-[10px] leading-3">{t("folders.title")}</span> : null}

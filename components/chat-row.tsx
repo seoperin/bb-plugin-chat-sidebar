@@ -27,6 +27,7 @@ import { useChat } from "./chat-context";
 import { ChatMenu } from "./chat-menu";
 import { useProjectColors } from "./project-colors";
 import { RenameInput } from "./rename-input";
+import { RowQuickActions } from "./row-actions";
 import { toActionTarget } from "./thread-actions";
 
 export type ProviderSummary = ReturnType<typeof experimental_useProviders>["providers"][number];
@@ -272,7 +273,7 @@ export function ChatRow({
       style={sortable?.style}
       {...sortable?.handleProps}
       data-chat-row={thread.id}
-      className={cn("relative list-none", sortable?.isDragging && "rounded-lg bg-sidebar shadow-lg")}
+      className={cn("group/row relative list-none", sortable?.isDragging && "rounded-lg bg-sidebar shadow-lg")}
     >
       {renaming ? (
         <div className={cn("flex items-center gap-2 rounded-lg bg-sidebar-accent px-2", compact ? "h-8" : "h-14")}>
@@ -296,11 +297,11 @@ export function ChatRow({
               setRenaming(true);
             }}
             className={cn(
-              "group flex select-none items-center rounded-lg text-sidebar-foreground no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+              "flex select-none items-center rounded-lg text-sidebar-foreground no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
               compact
                 ? cn("gap-2 px-2 text-[13px]", snippet === undefined ? "h-8" : "min-h-8 py-1")
                 : "gap-3 px-2 py-2 text-[13.5px]",
-              active ? "bg-sidebar-accent text-foreground" : "hover:bg-sidebar-accent/60",
+              active ? "bg-sidebar-accent text-foreground" : "group-hover/row:bg-sidebar-accent/60",
             )}
           >
             <Avatar row={row} size={compact ? "sm" : "md"} />
@@ -346,6 +347,7 @@ export function ChatRow({
           </a>
         </ChatMenu>
       )}
+      {renaming ? null : <RowQuickActions thread={thread} onRename={() => setRenaming(true)} />}
     </li>
   );
 }

@@ -123,6 +123,10 @@ export const en = {
 
   // Folder editor
   "folders.title": "Folders",
+  "menu.rowActions": "Row buttons…",
+  "rowActions.title": "Buttons on a row",
+  "rowActions.hint": "Up to {count} actions show at the right of a chat while you point at it.",
+  "rowActions.failed": "Couldn’t save the row buttons",
   "folders.edit": "Edit folders",
   "folders.editOne": "Edit folder",
   "folders.new": "New folder",

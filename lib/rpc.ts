@@ -1,11 +1,13 @@
-// The backend contract: the colour picked per project and the folder layout.
-// Both live in the plugin's key-value storage so every device sees them.
+// The backend contract: the colour picked per project, the folder layout, and
+// the quick buttons on a row. All live in the plugin's key-value storage so
+// every device sees them.
 // Backend only: the frontend imports types from here, never values, so zod
 // stays out of the app bundle.
 import { defineRpcContract } from "@get-bb/plugin-sdk";
 import { z } from "zod";
 
 import { COLOR_IDS } from "./colors";
+import { MAX_ROW_ACTIONS } from "./row-actions";
 import {
   FOLDER_SINCE,
   FOLDER_STATUSES,
@@ -18,6 +20,10 @@ import {
 export { COLORS_CHANNEL } from "./colors";
 export { FOLDERS_CHANNEL } from "./folders";
 export const MAX_PROJECT_COLORS = 500;
+export { MAX_ROW_ACTIONS, ROW_ACTIONS_CHANNEL } from "./row-actions";
+
+/** bb thread action keys, `<owner>/<id>`, in the order the row shows them. */
+const rowActions = z.array(z.string().min(3).max(200)).max(MAX_ROW_ACTIONS);
 
 const colorMap = z.record(z.string().min(1).max(200), z.enum(COLOR_IDS));
 
@@ -85,6 +91,8 @@ export const rpcContract = defineRpcContract({
       z.object({ revision: z.number().int(), replacedAt: z.number(), layout: layoutSchema.nullable() }).strict(),
     ),
   },
+  rowactions_get: { input: z.null(), output: rowActions },
+  rowactions_set: { input: z.object({ keys: rowActions }).strict(), output: rowActions },
   /** Makes a layout from history current again; null when it is no longer kept. */
   folders_restore: { input: z.object({ revision: z.number().int().min(0) }).strict(), output: folderState.nullable() },
 });

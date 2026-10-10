@@ -180,7 +180,7 @@ function EntryRow({
       style={style}
       {...(fixed ? {} : handleProps)}
       className={cn(
-        "group relative flex touch-manipulation select-none items-center gap-1.5 rounded-lg py-1.5 pl-1 pr-1.5",
+        "group/entry relative flex touch-manipulation select-none items-center gap-1.5 rounded-lg py-1.5 pl-1 pr-1.5",
         isDragging ? "bg-background shadow-lg ring-1 ring-border" : selected ? "bg-accent" : "hover:bg-accent/60",
       )}
     >
@@ -189,7 +189,7 @@ function EntryRow({
         title={fixed ? t("folders.alwaysFirst") : t("folders.drag")}
         className={cn(
           "grid w-3.5 shrink-0 place-items-center text-muted-foreground/60 transition-opacity",
-          fixed ? "invisible" : "cursor-grab opacity-0 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100",
+          fixed ? "invisible" : "cursor-grab opacity-0 group-hover/entry:opacity-100 [@media(pointer:coarse)]:opacity-100",
         )}
       >
         <Icon name="DragDropVertical" className="size-3.5" />
@@ -226,7 +226,7 @@ function EntryRow({
             "grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
             // Shown while it says "hidden"; otherwise on hover, and always on touch.
             !entry.hidden &&
-              "opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100",
+              "opacity-0 focus-visible:opacity-100 group-hover/entry:opacity-100 [@media(pointer:coarse)]:opacity-100",
           )}
         >
           <Icon name={entry.hidden ? "EyeOff" : "Eye"} className="size-3.5" />

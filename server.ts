@@ -1,15 +1,25 @@
 // bb-plugin-chat-sidebar — backend. The list lives in the frontend; the
 // backend declares the settings bb shows on the plugin's page and keeps what
-// syncs across devices: the colour picked for each project and the folders.
+// syncs across devices: the colour picked for each project, the folders, and
+// the quick buttons on a row.
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 
 import { isColorId } from "./lib/colors";
 import { layoutWithSettings, settingsPatchFor, type LegacyFolderSettings } from "./lib/folder-settings";
 import { createFolderStore } from "./lib/folder-store";
-import { COLORS_CHANNEL, FOLDERS_CHANNEL, MAX_PROJECT_COLORS, rpcContract, type ProjectColorMap } from "./lib/rpc";
+import {
+  COLORS_CHANNEL,
+  FOLDERS_CHANNEL,
+  MAX_PROJECT_COLORS,
+  ROW_ACTIONS_CHANNEL,
+  rpcContract,
+  type ProjectColorMap,
+} from "./lib/rpc";
+import { sanitizeRowActions } from "./lib/row-actions";
 import { SETTINGS } from "./lib/settings";
 
 const COLORS_KEY = "project-colors";
+const ROW_ACTIONS_KEY = "row-actions";
 
 export default function plugin(bb: BbPluginApi) {
   const settings = bb.settings.define(SETTINGS);
@@ -109,6 +119,14 @@ export default function plugin(bb: BbPluginApi) {
     folders_set: ({ layout, baseRevision }) => folders.save(layout, baseRevision),
     folders_history: () => folders.history(),
     folders_restore: ({ revision }) => folders.restore(revision),
+    rowactions_get: async () => {
+      return sanitizeRowActions(await bb.storage.kv.get<unknown>(ROW_ACTIONS_KEY));
+    },
+    rowactions_set: async ({ keys }) => {
+      await bb.storage.kv.set(ROW_ACTIONS_KEY, keys);
+      bb.realtime.publish(ROW_ACTIONS_CHANNEL, keys);
+      return keys;
+    },
     colors_get: () => read(),
     colors_set: ({ projectId, color }) =>
       writeColors((colors) => {

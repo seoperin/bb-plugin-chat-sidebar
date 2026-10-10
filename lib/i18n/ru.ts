@@ -120,6 +120,10 @@ export const ru: Messages = {
 
   // Редактор папок
   "folders.title": "Папки",
+  "menu.rowActions": "Кнопки на строке…",
+  "rowActions.title": "Кнопки на строке",
+  "rowActions.hint": "До {count} действий появляются справа у чата при наведении.",
+  "rowActions.failed": "Не удалось сохранить кнопки строки",
   "folders.edit": "Настроить папки",
   "folders.editOne": "Изменить папку",
   "folders.new": "Новая папка",

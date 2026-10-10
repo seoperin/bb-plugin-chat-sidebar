@@ -20,6 +20,7 @@ import type { Chat } from "@/lib/model";
 import { laneOf } from "@/lib/status";
 import { useT } from "./chat-context";
 import { useProjectColors } from "./project-colors";
+import { useRowActions } from "./row-actions";
 import { laneIcon, swatchIcon, toActionTarget } from "./thread-actions";
 
 const MAX_SUB_AGENTS = 8;
@@ -43,6 +44,7 @@ export function ChatMenu({
   const sdk = useSdk();
   const navigate = useBbNavigate();
   const { colorOf, pickOf, setColor } = useProjectColors();
+  const { openPicker } = useRowActions();
   const { thread, project } = row;
 
   const inline: PluginThreadActionsInlineItem[] = [];
@@ -120,6 +122,12 @@ export function ChatMenu({
       },
     });
   }
+
+  inline.push({
+    key: "row-actions",
+    group: GROUPS.settings,
+    action: { label: t("menu.rowActions"), icon: "SlidersHorizontal", run: openPicker },
+  });
 
   return (
     <ThreadActionsContextMenu

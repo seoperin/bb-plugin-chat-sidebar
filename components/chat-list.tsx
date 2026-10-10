@@ -52,6 +52,7 @@ import { FoldersProvider, useFolders } from "./folders-context";
 import { GroupHeader } from "./group-header";
 import { NewChatButton } from "./new-chat-button";
 import { ProjectColorsProvider } from "./project-colors";
+import { RowActionsProvider } from "./row-actions";
 import { SearchBar } from "./search-bar";
 import { publishFolderBridge } from "./thread-actions";
 
@@ -104,7 +105,9 @@ export function ChatList(props: PluginThreadListProps) {
   return (
     <ChatProvider>
       <FoldersProvider>
-        <ChatListView {...props} />
+        <RowActionsProvider>
+          <ChatListView {...props} />
+        </RowActionsProvider>
       </FoldersProvider>
     </ChatProvider>
   );
