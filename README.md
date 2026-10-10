@@ -29,7 +29,9 @@ view, so nothing about how bb works changes.
   order of use, one per bb section, and Archive. Each has an unread badge and
   a status dot. Show them as tabs above the list, or as a Telegram-style rail
   on the left that scrolls on its own. Without names the rail lays out roomier
-  icons, Discord-style. Drag a folder to move it.
+  icons, Discord-style. On phones the folders sit as tabs by default, since
+  bb's navigation rail already takes the left edge there. Drag a folder to
+  move it.
 - **Your own folders.** Like Telegram's: pick chats by status, project,
   section, agent, words in the title or branch, how long they have waited, or
   when they were last active, and add or leave out chats by hand. Ready-made
@@ -45,14 +47,17 @@ view, so nothing about how bb works changes.
   section. Right-click it to choose any project.
 - **Search** by title, project, branch, or sub-agent, and inside the
   conversations: a chat that only its messages mention shows up too, with the
-  matching words under its title.
+  matching words under its title. Archived chats it finds are listed under
+  the results.
 - **bb's own thread menu.** Right-click a chat for the same menu as bb's
   rows and thread header: split, copy link, read, pin, rename, archive,
   delete, per-thread notifications, and whatever other plugins add, plus the
   list's own items (sub-agents, project colour, new chat in the project).
-  **Add to folder** is in the thread header's menu as well.
+  **Add to folder** and, when you have bb sections, **Move to section** are in
+  the thread header's menu as well.
 - **Muted chats** (bb's notifications set to Muted) show a muted bell and a
-  grey unread dot.
+  grey unread dot, count in no folder badge, and stay out of Attention, as in
+  Telegram.
 - **Row buttons.** Pick up to three actions from that menu to show at the
   right of a chat while you point at it: right-click a chat → Row buttons…
   The pick syncs across your devices.
@@ -109,6 +114,7 @@ bb plugin config chat-sidebar unset folderLayout        # back to the default
 | `language` | `Auto`, `English`, `Русский` | `Auto` |
 | `projects` | `Folders`, `List headers`, `Off` | `Folders` |
 | `folderLayout` | `Tabs above the list`, `Rail on the left` | `Tabs above the list` |
+| `phoneFolderLayout` | `Tabs above the list`, `Same as on wider screens` | `Tabs above the list` |
 | `folderNames` | names under the rail's icons; off leaves an icon-only rail | `true` |
 | `density` | `Comfortable`, `Compact` | `Comfortable` |
 | `stickyHeadings` | keep the current project heading under the tabs (`List headers`) | `true` |
@@ -127,7 +133,8 @@ The plugin makes no network requests of its own and needs no accounts or
 keys. It reads threads through bb's plugin SDK; message search goes through
 bb's own thread search. Project colours, the folder layout and its last 20
 versions, and the row buttons are stored in the plugin's key-value storage
-inside bb. The open folder and collapsed headings are remembered in the
+inside bb. To leave muted chats out of the badges, the list reads bb's
+notifications plugin's per-thread levels (thread metadata) and its defaults. The open folder and collapsed headings are remembered in the
 browser's localStorage, along with a copy of the project colours and folders
 so they show before bb answers.
 
@@ -153,12 +160,13 @@ lib/                    pure logic, unit-tested
   folder-store.ts       the stored layout: revisions, history, restore
   folder-settings.ts    the old folder settings kept in step with the layout
   status.ts             bb thread state → needs you / working / done + a status message
+  muted.ts              bb's per-thread notification levels → which chats are muted
   colors.ts             palette and automatic colour assignment
   i18n/                 typed translator, en.ts is the source of truth
   settings.ts           setting definitions and parsing
 components/             the UI (chat-list.tsx puts it together)
   folder-editor/        the folder editor dialog (a bottom sheet on phones)
-hooks/                  scroll area, paging, pinned order, drag to reorder (dnd-kit), message search
+hooks/                  scroll area, paging, pinned order, drag to reorder (dnd-kit), message search, muted chats
 assets/icons/           folder icons from Hugeicons, declared in the manifest
 components/ui/          components vendored from bb's plugin registry
 test/                   vitest, including a rendered-list test with bb's SDK test harness

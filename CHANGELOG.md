@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.3
+
+- **Muted chats stay quiet.** A chat whose bb notifications are muted, by
+  itself or by a parent, counts in no folder badge and stays out of
+  Attention, as in Telegram. It still shows in its other folders.
+- **Archive in search.** Archived chats the search finds are listed under the
+  results, a few at first and the rest one click away, whether or not the
+  archive has been opened.
+- **Folder layout on phones.** bb's navigation rail now sits beside the list
+  on phones too, so the folders show as tabs there by default. The new
+  **Folder layout on phones** setting can follow **Folder layout** instead.
+- **Move to section** in bb's thread menus, while you have bb sections.
+
 ## 0.2.2
 
 Follows bb 0.46, which needs this version: 0.2.1 is the last one for bb 0.44–0.45.
