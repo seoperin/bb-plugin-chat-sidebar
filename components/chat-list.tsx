@@ -1,8 +1,8 @@
 // The sidebar thread list, as a messenger: search, folders, and chats.
 //
-// bb keeps the New-thread button, plugin rows, and footer; this component
-// owns the scrolling list only. Opening a chat routes through bb's own
-// `actions.open`, so splits, pane focus, and the mobile drawer behave as in
+// bb keeps the New-thread button, the navigation rail, and the footer; this
+// component owns the scrolling list only. Opening a chat routes through bb's
+// own `toThread`, so splits, pane focus, and the mobile drawer behave as in
 // bb's list.
 import {
   useEffect,
@@ -16,8 +16,8 @@ import {
 } from "react";
 import {
   experimental_useProviders,
-  experimental_useSidebarThreadActions,
   experimental_useSidebarThreads,
+  useBbNavigate,
   type PluginThreadListProps,
 } from "@get-bb/plugin-sdk/app";
 
@@ -46,11 +46,13 @@ import { ChatRow, SortableChatRow, type ProviderSummary } from "./chat-row";
 import { FolderEditor } from "./folder-editor";
 import { FolderRail } from "./folder-rail";
 import { FolderTabs } from "./folder-tabs";
+import { useFolderLabel } from "./folder-menu";
 import { FoldersProvider, useFolders } from "./folders-context";
 import { GroupHeader } from "./group-header";
 import { NewChatButton } from "./new-chat-button";
 import { ProjectColorsProvider } from "./project-colors";
 import { SearchBar } from "./search-bar";
+import { publishFolderBridge } from "./thread-actions";
 
 const PAGE_SIZE = 60;
 const DAY = 86_400_000;
@@ -110,7 +112,8 @@ export function ChatList(props: PluginThreadListProps) {
 function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
   const { settings, i18n } = useChat();
   const { t } = i18n;
-  const { layout } = useFolders();
+  const { layout, setLayout, updateEntry, openEditor } = useFolders();
+  const folderLabel = useFolderLabel();
   const [folder, setFolderState] = useState<FolderId>(() =>
     readStored<FolderId>(FOLDER_KEY, (raw) => raw as FolderId, "all"),
   );
@@ -124,7 +127,7 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
     experimental_hosts: hosts,
     experimental_archived: archivePages,
   } = experimental_useSidebarThreads(archiveMode ? WITH_ARCHIVE : ACTIVE_ONLY);
-  const actions = experimental_useSidebarThreadActions();
+  const navigate = useBbNavigate();
   const { providers } = experimental_useProviders();
   const now = useNow(30_000);
   const [query, setQuery] = useState("");
@@ -152,7 +155,7 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
       return next;
     });
   const open = (threadId: string, split: boolean) => {
-    actions.open(threadId, { split });
+    navigate.toThread(threadId, { split });
     onNavigate();
   };
 
@@ -170,6 +173,26 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
         : [],
     [archiveMode, threads, projects, settings.foldChildren],
   );
+  // "Add to folder" in bb's thread menus reads the folders through this
+  // bridge, so it works in the thread header's menu too while the list is up.
+  useEffect(() => {
+    const rows = new Map<string, Chat>();
+    for (const chat of chats) {
+      rows.set(chat.thread.id, chat);
+      for (const child of chat.children) rows.set(child.id, chat);
+    }
+    publishFolderBridge({
+      t,
+      layout,
+      rowOf: (threadId) => rows.get(threadId),
+      label: folderLabel,
+      updateEntry,
+      setLayout,
+      openEditor,
+    });
+  }, [chats, layout, t, folderLabel, updateEntry, setLayout, openEditor]);
+  useEffect(() => () => publishFolderBridge(null), []);
+
   // Automatic colours go to projects that have chats, so a few busy projects
   // are not pushed into the in-between hues by empty ones.
   const projectsInUse = useMemo(() => projectsByUse(chats, projects), [chats, projects]);

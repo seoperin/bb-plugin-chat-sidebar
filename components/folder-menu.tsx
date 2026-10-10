@@ -1,8 +1,8 @@
 // Shared folder pieces for the tab strip and the rail: the folder's label,
 // "mark all as read", and the right-click menu.
-import type { ReactNode } from "react";
+import { useCallback, type ReactNode } from "react";
 import { toast } from "sonner";
-import { experimental_useSidebarThreadActions } from "@get-bb/plugin-sdk/app";
+import { useBbNavigate, useSdk } from "@get-bb/plugin-sdk/app";
 
 import {
   ContextMenu,
@@ -14,7 +14,7 @@ import {
 import { Icon } from "@/components/ui/icon";
 import type { EntryKind } from "@/lib/folders";
 import type { MessageKey } from "@/lib/i18n";
-import { unreadIdsIn, type Chat, type Folder } from "@/lib/model";
+import { composeTarget, unreadIdsIn, type Chat, type Folder } from "@/lib/model";
 import { useT } from "./chat-context";
 import { useFolders } from "./folders-context";
 import { ProjectColorSubmenu } from "./project-colors";
@@ -34,22 +34,25 @@ const BUILT_IN: Partial<Record<EntryKind, MessageKey>> = {
  */
 export function useFolderLabel() {
   const t = useT();
-  return (folder: { name: string | null; personal?: boolean; kind: EntryKind }): string => {
-    if (folder.personal === true) return t("folder.personal");
-    if (folder.name !== null && folder.name.trim() !== "") return folder.name;
-    const key = BUILT_IN[folder.kind];
-    return key === undefined ? "" : t(key);
-  };
+  return useCallback(
+    (folder: { name: string | null; personal?: boolean; kind: EntryKind }): string => {
+      if (folder.personal === true) return t("folder.personal");
+      if (folder.name !== null && folder.name.trim() !== "") return folder.name;
+      const key = BUILT_IN[folder.kind];
+      return key === undefined ? "" : t(key);
+    },
+    [t],
+  );
 }
 
 /** Mark every unread thread in a folder as read, like Telegram's "Mark as read". */
 function useMarkFolderRead(rows: readonly Chat[]) {
   const t = useT();
-  const actions = experimental_useSidebarThreadActions();
+  const sdk = useSdk();
   return async (folder: Folder) => {
     const ids = unreadIdsIn(rows, folder);
     if (ids.length === 0) return;
-    const results = await Promise.allSettled(ids.map((id) => actions.setRead(id, true)));
+    const results = await Promise.allSettled(ids.map((threadId) => sdk.threads.markRead({ threadId })));
     const failed = results.filter((result) => result.status === "rejected").length;
     if (failed > 0) toast.error(t("toast.markReadFailed", { failed, total: ids.length }));
   };
@@ -59,7 +62,7 @@ function useMarkFolderRead(rows: readonly Chat[]) {
 export function FolderMenu({ folder, rows, children }: { folder: Folder; rows: readonly Chat[]; children: ReactNode }) {
   const t = useT();
   const markRead = useMarkFolderRead(rows);
-  const actions = experimental_useSidebarThreadActions();
+  const navigate = useBbNavigate();
   const { openEditor } = useFolders();
   const label = useFolderLabel();
   const unread = unreadIdsIn(rows, folder).length;
@@ -75,13 +78,13 @@ export function FolderMenu({ folder, rows, children }: { folder: Folder; rows: r
           {unread === 0 ? t("folder.allRead") : t("folder.markRead", { count: unread })}
         </ContextMenuItem>
         {projectId !== null ? (
-          <ContextMenuItem onSelect={() => actions.openNewThread({ projectId, focusPrompt: true })}>
+          <ContextMenuItem onSelect={() => navigate.toCompose({ projectId, focusPrompt: true })}>
             <Icon name="MessageSquarePlus" />
             {t("folder.newChat")}
           </ContextMenuItem>
         ) : null}
         {startIn !== null ? (
-          <ContextMenuItem onSelect={() => actions.openNewThread({ ...startIn, focusPrompt: true })}>
+          <ContextMenuItem onSelect={() => navigate.toCompose({ ...composeTarget(startIn), focusPrompt: true })}>
             <Icon name="MessageSquarePlus" />
             {t("newChat.in", { name: label(folder) })}
           </ContextMenuItem>
@@ -91,7 +94,9 @@ export function FolderMenu({ folder, rows, children }: { folder: Folder; rows: r
         ) : null}
         {folder.id.startsWith("section:") ? (
           <ContextMenuItem
-            onSelect={() => actions.openNewThread({ sectionId: folder.id.slice("section:".length), focusPrompt: true })}
+            onSelect={() =>
+              navigate.toCompose({ ...composeTarget({ sectionId: folder.id.slice("section:".length) }), focusPrompt: true })
+            }
           >
             <Icon name="MessageSquarePlus" />
             {t("folder.newChatSection")}

@@ -54,6 +54,20 @@ export interface Folder {
   startIn: { projectId?: string; sectionId?: string } | null;
 }
 
+/**
+ * What bb's `toCompose` takes for a folder's `startIn`: a section becomes the
+ * new thread's placement, unpinned, as bb's own "New thread in section" does.
+ */
+export function composeTarget(startIn: { projectId?: string; sectionId?: string }): {
+  projectId?: string;
+  placement?: { sectionId: string; pinned: false };
+} {
+  return {
+    ...(startIn.projectId !== undefined ? { projectId: startIn.projectId } : {}),
+    ...(startIn.sectionId !== undefined ? { placement: { sectionId: startIn.sectionId, pinned: false } } : {}),
+  };
+}
+
 export interface BuildOptions {
   lifecycle?: "active" | "archived";
   foldChildren?: boolean;

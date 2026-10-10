@@ -1,12 +1,9 @@
 // Rename in place: a field instead of the title. Enter or blur saves, Esc
-// cancels; an empty or unchanged title is not saved. bb saves silently
-// (`actions.rename`), without a dialog.
+// cancels; an empty or unchanged title is not saved. Saved silently through
+// `threads.update`, without bb's rename dialog.
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  experimental_useSidebarThreadActions,
-  type PluginSidebarThread,
-} from "@get-bb/plugin-sdk/app";
+import { useSdk, type PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 
 import { cn } from "@/lib/utils";
 import { useT } from "./chat-context";
@@ -21,7 +18,7 @@ export function RenameInput({
   className?: string;
 }) {
   const t = useT();
-  const actions = experimental_useSidebarThreadActions();
+  const sdk = useSdk();
   const initial = thread.title ?? thread.displayTitle;
   const [value, setValue] = useState(initial);
   const ref = useRef<HTMLInputElement>(null);
@@ -42,7 +39,7 @@ export function RenameInput({
     const next = value.trim();
     onDone();
     if (!save || next === "" || next === initial) return;
-    actions.rename(thread.id, next).catch((cause: unknown) => {
+    sdk.threads.update({ threadId: thread.id, title: next }).catch((cause: unknown) => {
       toast.error(t("toast.renameFailed"), {
         description: cause instanceof Error ? cause.message : String(cause),
       });

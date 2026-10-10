@@ -94,6 +94,7 @@ export const en = {
   "menu.delete": "Delete…",
   "menu.newChat": "New chat in this project",
   "menu.subAgents": "Sub-agents",
+  "menu.markFoldedRead": "Mark sub-agents as read",
 
   // Rename
   // Colours

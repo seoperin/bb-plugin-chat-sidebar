@@ -63,15 +63,15 @@ describe("chat list", () => {
     expect(screen.getByText("Needs you")).toBeTruthy();
   });
 
-  it("opens through bb's actions and closes the mobile drawer", async () => {
+  it("opens through bb's navigation and closes the mobile drawer", async () => {
     const { view, onNavigate } = await render();
     const anchor = view.container.querySelector<HTMLAnchorElement>('a[data-sidebar-thread-id="thr_calm"]');
     if (anchor === null) throw new Error("row missing");
     fireEvent.click(anchor, { button: 0 });
     fireEvent.click(anchor, { button: 0, metaKey: true });
-    expect(view.inspection.sidebarActionCalls).toEqual([
-      { method: "open", threadId: "thr_calm", options: { split: false } },
-      { method: "open", threadId: "thr_calm", options: { split: true } },
+    expect(view.inspection.navigateCalls).toEqual([
+      { method: "toThread", threadId: "thr_calm", options: { split: false } },
+      { method: "toThread", threadId: "thr_calm", options: { split: true } },
     ]);
     expect(onNavigate).toHaveBeenCalledTimes(2);
   });
@@ -96,9 +96,9 @@ describe("chat list", () => {
     fireEvent.click(screen.getByRole("button", { name: "New chat" }));
     fireEvent.click(screen.getByRole("button", { name: /^Beta/ }));
     fireEvent.click(screen.getByRole("button", { name: "New chat in Beta" }));
-    expect(view.inspection.sidebarActionCalls.filter((call) => call.method === "openNewThread")).toEqual([
-      { method: "openNewThread", options: { focusPrompt: true } },
-      { method: "openNewThread", options: { projectId: "proj_b", focusPrompt: true } },
+    expect(view.inspection.navigateCalls.filter((call) => call.method === "toCompose")).toEqual([
+      { method: "toCompose", options: { focusPrompt: true } },
+      { method: "toCompose", options: { projectId: "proj_b", focusPrompt: true } },
     ]);
     expect(onNavigate).toHaveBeenCalledTimes(2);
   });

@@ -2,7 +2,7 @@
 // custom folder about one project) it starts the chat in that project, in a
 // section's folder it files it there, elsewhere it opens bb's New thread as
 // usual. Right-click to pick any project.
-import { experimental_useSidebarThreadActions, type PluginSidebarProject } from "@get-bb/plugin-sdk/app";
+import { useBbNavigate, type PluginSidebarProject } from "@get-bb/plugin-sdk/app";
 
 import {
   ContextMenu,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Icon } from "@/components/ui/icon";
 import { swatch } from "@/lib/colors";
-import type { Folder } from "@/lib/model";
+import { composeTarget, type Folder } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { useT } from "./chat-context";
 import { useFolderLabel } from "./folder-menu";
@@ -34,14 +34,14 @@ export function NewChatButton({
 }) {
   const t = useT();
   const label = useFolderLabel();
-  const actions = experimental_useSidebarThreadActions();
+  const navigate = useBbNavigate();
   const { colorOf } = useProjectColors();
 
   const startIn = folder?.startIn ?? null;
   const title = folder !== null && startIn !== null ? t("newChat.in", { name: label(folder) }) : t("newChat.label");
 
   const start = (options: { projectId?: string; sectionId?: string }) => {
-    actions.openNewThread({ ...options, focusPrompt: true });
+    navigate.toCompose({ ...composeTarget(options), focusPrompt: true });
     onNavigate();
   };
 

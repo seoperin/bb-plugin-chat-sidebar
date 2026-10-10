@@ -92,6 +92,7 @@ export const ru: Messages = {
   "menu.delete": "Удалить…",
   "menu.newChat": "Новый чат в проекте",
   "menu.subAgents": "Субагенты",
+  "menu.markFoldedRead": "Пометить субагентов прочитанными",
 
   // Colours
   "color.menu": "Цвет проекта",
