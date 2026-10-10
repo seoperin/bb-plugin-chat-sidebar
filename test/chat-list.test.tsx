@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { loadPluginApp, renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { loadPluginApp, renderSlot, type TestThreadActionsResolver } from "@get-bb/plugin-sdk/testing/app";
 
 import app from "../app";
 import { NOW, project, thread } from "./fixtures";
@@ -30,7 +30,10 @@ const threads = [
 ];
 const projects = [project("proj_a", "Alpha"), project("proj_b", "Beta")];
 
-async function render(settings: Record<string, string | number | boolean> = {}) {
+async function render(
+  settings: Record<string, string | number | boolean> = {},
+  threadActions?: TestThreadActionsResolver,
+) {
   const loaded = await loadPluginApp(app);
   const registration = loaded.threadLists[0];
   if (registration === undefined) throw new Error("thread list is not registered");
@@ -41,6 +44,7 @@ async function render(settings: Record<string, string | number | boolean> = {}) 
     {
       sidebarThreads: { status: "ready", threads, projects, sections: [] },
       settings,
+      threadActions,
       sdk: {
         threads: {
           // Only "deploy logs" is in a message (of the sub-agent folded into thr_wait).
@@ -131,6 +135,30 @@ describe("chat list", () => {
       { method: "toCompose", options: { projectId: "proj_b", focusPrompt: true } },
     ]);
     expect(onNavigate).toHaveBeenCalledTimes(2);
+  });
+
+  it("marks a chat whose notifications are muted in bb", async () => {
+    await render({ language: "English" }, (thread) =>
+      thread.id === "thr_calm"
+        ? [
+            {
+              key: "push-notifications/notifications",
+              pluginId: "push-notifications",
+              group: "3_settings",
+              action: { label: "Notifications", detail: "Muted", icon: "push-notifications/off", run: async () => {} },
+            },
+          ]
+        : [],
+    );
+    const muted = screen.getAllByLabelText("Notifications off");
+    expect(muted).toHaveLength(1);
+    expect(muted[0]?.closest("li")?.getAttribute("data-chat-row")).toBe("thr_calm");
+  });
+
+  it("adds Add to folder to bb's thread menus only while the list is up", async () => {
+    const loaded = await loadPluginApp(app);
+    const registration = loaded.threadActions.find((action) => action.id === "add-to-folder");
+    expect(registration?.group).toBe("2_organize");
   });
 
   it("speaks the language picked in settings", async () => {
