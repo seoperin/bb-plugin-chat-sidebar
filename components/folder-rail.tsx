@@ -1,10 +1,13 @@
 // Folders as a narrow rail on the left, like Telegram's folder sidebar: an
 // icon with its name underneath, a badge for unread chats, and a dot for the
 // most urgent status. Projects show their colour and initial, the same as
-// their chats' avatars. With names turned off the rail keeps only the icons
-// and narrows; the name stays in the tooltip and for screen readers. The rail scrolls on its own, independently of the list,
-// and ends with the button that opens the folder editor. Folders are dragged
-// to reorder, a folder per project or per section as one block.
+// their chats' avatars. With names turned off the rail keeps only the icons,
+// laid out the way Discord's server rail is: larger squares with room between
+// them that round less when open or hovered, and badges cut out of the
+// square's corner. The name stays in the tooltip and for
+// screen readers. The rail scrolls on its own, independently of the list, and
+// ends with the button that opens the folder editor. Folders are dragged to
+// reorder, a folder per project or per section as one block.
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { DndContext } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -40,30 +43,46 @@ function RailFolder({
         aria-pressed={selected}
         title={name}
         onClick={() => onSelect(folder.id)}
-        className="group relative flex w-full cursor-pointer select-none flex-col items-center gap-1 rounded-lg px-1 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={cn(
+          "group relative flex w-full cursor-pointer select-none flex-col items-center outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          showName ? "gap-1 px-1 py-1.5" : "py-1",
+        )}
       >
-        <span className="relative">
-          <FolderGlyph
-            kind={folder.kind}
-            icon={folder.icon}
-            color={folder.color}
-            projectId={folder.id.startsWith("project:") ? folder.id.slice("project:".length) : null}
-            colorProjectId={folder.linkedProjectId}
-            label={name}
-            selected={selected}
-          />
-          {folder.badge > 0 ? (
-            <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[color:var(--chat-working)] px-1 text-[10px] font-semibold tabular-nums text-white ring-2 ring-sidebar">
-              {folder.badge}
-            </span>
-          ) : null}
-          {folder.lane !== null ? (
-            <span
-              data-lane={folder.lane}
-              aria-hidden="true"
-              className="chat-lane-dot absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-sidebar"
+        <span className="relative flex w-full justify-center">
+          <span className="relative">
+            <FolderGlyph
+              kind={folder.kind}
+              icon={folder.icon}
+              color={folder.color}
+              projectId={folder.id.startsWith("project:") ? folder.id.slice("project:".length) : null}
+              colorProjectId={folder.linkedProjectId}
+              label={name}
+              selected={selected}
+              size={showName ? "md" : "lg"}
             />
-          ) : null}
+            {folder.badge > 0 ? (
+              <span
+                className={cn(
+                  "absolute grid place-items-center rounded-full bg-[color:var(--chat-working)] font-semibold tabular-nums text-white ring-[3px] ring-sidebar",
+                  showName
+                    ? "-right-1.5 -top-1.5 h-4 min-w-4 px-1 text-[10px]"
+                    : "-bottom-1 -right-1 h-[18px] min-w-[18px] px-1 text-[11px]",
+                )}
+              >
+                {folder.badge}
+              </span>
+            ) : null}
+            {folder.lane !== null ? (
+              <span
+                data-lane={folder.lane}
+                aria-hidden="true"
+                className={cn(
+                  "chat-lane-dot absolute rounded-full ring-[3px] ring-sidebar",
+                  showName ? "-bottom-0.5 -right-0.5 size-2.5" : "-right-0.5 -top-0.5 size-3",
+                )}
+              />
+            ) : null}
+          </span>
         </span>
         <span
           className={cn(
@@ -116,11 +135,14 @@ export function FolderRail({
       style={{ height: height > 0 ? `${height}px` : undefined } as CSSProperties}
       className={cn(
         "sticky top-0 flex shrink-0 flex-col self-start border-r border-sidebar-border",
-        showNames ? "w-16" : "w-12",
+        showNames ? "w-16" : "w-[60px]",
       )}
     >
       {/* Same box as the search row: pt-1, a 28px control, pb-2. */}
       {top !== undefined ? <div className="flex shrink-0 justify-center pb-2 pt-1">{top}</div> : null}
+      {top !== undefined && !showNames ? (
+        <div aria-hidden="true" className="mx-auto mb-2 h-0.5 w-8 shrink-0 rounded-full bg-foreground/15" />
+      ) : null}
       <nav
         ref={railRef}
         aria-label={t("folder.tabs")}
@@ -136,7 +158,7 @@ export function FolderRail({
                 key={block.entryId}
                 id={block.entryId}
                 fixed={block.entryId === "all"}
-                className="flex flex-col gap-0.5 py-px"
+                className={cn("flex flex-col", showNames ? "gap-0.5 py-px" : "gap-1 py-0.5")}
               >
                 {block.folders.map((folder) => (
                   <RailFolder

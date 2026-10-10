@@ -291,7 +291,15 @@ function ChatListView({ activeThreadId, onNavigate }: PluginThreadListProps) {
           ? t("list.emptyAttention")
           : t("list.empty");
   const note = (text: string) => <p className="px-3 py-6 text-center text-xs text-muted-foreground">{text}</p>;
-  const newChat = <NewChatButton folder={currentFolder} projects={projectsInUse} onNavigate={onNavigate} />;
+  const newChat = (
+    <NewChatButton
+      folder={currentFolder}
+      projects={projectsInUse}
+      onNavigate={onNavigate}
+      // On the icons-only rail it matches the folders' squares.
+      className={rail && !settings.folderNames ? "size-10 rounded-[15px] hover:rounded-[12px] [&_svg]:size-5" : undefined}
+    />
+  );
 
   return (
     <ProjectColorsProvider projects={projectsInUse}>

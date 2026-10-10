@@ -16,6 +16,7 @@ export function FolderGlyph({
   colorProjectId = null,
   label,
   selected = false,
+  ring = true,
   size = "md",
 }: {
   kind: EntryKind;
@@ -27,18 +28,27 @@ export function FolderGlyph({
   colorProjectId?: string | null;
   label: string;
   selected?: boolean;
-  size?: "md" | "sm";
+  /** Mark the selection with a ring. */
+  ring?: boolean;
+  /** "lg" is the icons-only rail's: a 40px square that rounds less when selected or hovered, as in Discord. */
+  size?: "lg" | "md" | "sm";
 }) {
   const { colorOf } = useProjectColors();
-  const box = size === "md" ? "size-8 rounded-[10px]" : "size-6 rounded-[7px]";
+  const box =
+    size === "lg"
+      ? cn("size-10 transition-[border-radius] duration-150", selected ? "rounded-[12px]" : "rounded-[15px] group-hover:rounded-[12px]")
+      : size === "md"
+        ? "size-8 rounded-[10px]"
+        : "size-6 rounded-[7px]";
+  const selectedRing = selected && ring && "ring-2 ring-foreground/70 ring-offset-2 ring-offset-sidebar";
   if (projectId !== null) {
     return (
       <span
         className={cn(
           "grid shrink-0 place-items-center font-semibold text-white",
           box,
-          size === "md" ? "text-[13px]" : "text-[11px]",
-          selected && "ring-2 ring-foreground/70 ring-offset-2 ring-offset-sidebar",
+          size === "lg" ? "text-[15px]" : size === "md" ? "text-[13px]" : "text-[11px]",
+          selectedRing,
         )}
         style={{ background: avatarBackground(colorOf(projectId, projectId)) }}
       >
@@ -55,14 +65,14 @@ export function FolderGlyph({
         "grid shrink-0 place-items-center transition-colors",
         box,
         fill !== null
-          ? cn("text-white", selected && "ring-2 ring-foreground/70 ring-offset-2 ring-offset-sidebar")
+          ? cn("text-white", selectedRing)
           : selected
             ? "bg-foreground text-background"
             : "bg-sidebar-accent/70 text-muted-foreground group-hover:text-foreground",
       )}
       style={fill !== null ? { background: avatarBackground(fill) } : undefined}
     >
-      <Icon name={name} className={size === "md" ? "size-4" : "size-3.5"} />
+      <Icon name={name} className={size === "lg" ? "size-5" : size === "md" ? "size-4" : "size-3.5"} />
     </span>
   );
 }
