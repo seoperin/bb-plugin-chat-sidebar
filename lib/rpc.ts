@@ -103,6 +103,8 @@ export const rpcContract = defineRpcContract({
     input: z.object({ folderId: z.string().min(1).max(250), image: folderImage.nullable() }).strict(),
     output: imageMap,
   },
+  /** Settings the folder editor changes in place, so they need no trip to bb's plugin page. */
+  settings_set: { input: z.object({ folderNames: z.boolean() }).strict(), output: z.null() },
   rowactions_get: { input: z.null(), output: rowActions },
   rowactions_set: { input: z.object({ keys: rowActions }).strict(), output: rowActions },
   /** Makes a layout from history current again; null when it is no longer kept. */

@@ -268,4 +268,9 @@ export const ru: Messages = {
   "image.save": "Сохранить",
   "image.unreadable": "Не удалось открыть картинку",
   "toast.imageFailed": "Не удалось сохранить картинку",
+  "folders.look": "Вид",
+  "folders.railNames": "Подписи под папками на панели",
+  "folders.railNamesOn": "Иконки и подписи",
+  "folders.railNamesOff": "Только иконки",
+  "toast.settingsFailed": "Не удалось изменить настройку",
 };

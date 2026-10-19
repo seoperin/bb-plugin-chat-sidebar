@@ -162,6 +162,10 @@ export default function plugin(bb: BbPluginApi) {
       bb.realtime.publish(ROW_ACTIONS_CHANNEL, keys);
       return keys;
     },
+    settings_set: async (patch) => {
+      await settings.experimental_set(patch);
+      return null;
+    },
     images_get: () => readImages(),
     images_set: ({ folderId, image }) => setImage(folderId, image),
     colors_get: () => read(),

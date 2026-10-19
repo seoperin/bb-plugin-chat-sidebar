@@ -2,6 +2,8 @@
 // hide, a click to edit; new and ready-made folders below, then history and
 // the reset, which asks first.
 import { useState } from "react";
+import { toast } from "sonner";
+import { useRpc } from "@get-bb/plugin-sdk/app";
 import { DndContext } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
@@ -17,13 +19,14 @@ import {
 } from "@/lib/folders";
 import type { MessageKey } from "@/lib/i18n";
 import { matchesRule, needsAttention, projectsByUse } from "@/lib/model";
+import type { rpcContract } from "@/lib/rpc";
 import { cn } from "@/lib/utils";
 import { entryFolderId } from "@/lib/folder-images";
-import { useT } from "../chat-context";
+import { useChat, useT } from "../chat-context";
 import { FolderGlyph } from "../folder-glyph";
 import { useFolderLabel } from "../folder-menu";
 import { useFolderDnd, useFolders } from "../folders-context";
-import { Chip, ConfirmPanel, SectionTitle, TextAction } from "./controls";
+import { Chip, ConfirmPanel, Field, SectionTitle, TextAction } from "./controls";
 import type { EditorData } from "./types";
 
 export function ListPane({
@@ -128,6 +131,8 @@ export function ListPane({
         })}
       </div>
 
+      <RailNames />
+
       <div className="mt-5 flex flex-wrap items-center gap-x-2 px-2.5">
         <TextAction onClick={onHistory}>
           <Icon name="ClockArrowDown" className="size-3.5" />
@@ -154,6 +159,42 @@ export function ListPane({
         />
       ) : null}
     </div>
+  );
+}
+
+/** "Folder names on the rail" from the plugin's settings, here where its effect shows. */
+function RailNames() {
+  const t = useT();
+  const { settings } = useChat();
+  const rpc = useRpc<typeof rpcContract>();
+  // Shown at once; bb's settings catch up a moment later.
+  const [pending, setPending] = useState<boolean | null>(null);
+  if (settings.folderLayout !== "rail") return null;
+  const shown = pending ?? settings.folderNames;
+  const set = (folderNames: boolean) => {
+    if (folderNames === shown) return;
+    setPending(folderNames);
+    rpc
+      .call("settings_set", { folderNames })
+      .catch((cause: unknown) =>
+        toast.error(t("toast.settingsFailed"), {
+          description: cause instanceof Error ? cause.message : String(cause),
+        }),
+      )
+      .finally(() => setPending(null));
+  };
+  return (
+    <>
+      <SectionTitle>{t("folders.look")}</SectionTitle>
+      <Field title={t("folders.railNames")}>
+        <Chip active={shown} onClick={() => set(true)}>
+          {t("folders.railNamesOn")}
+        </Chip>
+        <Chip active={!shown} onClick={() => set(false)}>
+          {t("folders.railNamesOff")}
+        </Chip>
+      </Field>
+    </>
   );
 }
 

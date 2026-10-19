@@ -262,6 +262,11 @@ export const en = {
   "image.save": "Save",
   "image.unreadable": "Couldn't open the picture",
   "toast.imageFailed": "Couldn't save the picture",
+  "folders.look": "Look",
+  "folders.railNames": "Names under the folders on the rail",
+  "folders.railNamesOn": "Icons and names",
+  "folders.railNamesOff": "Icons only",
+  "toast.settingsFailed": "Couldn't change the setting",
 } satisfies Record<string, string | PluralForms>;
 
 export type MessageKey = keyof typeof en;
