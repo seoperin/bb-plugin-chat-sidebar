@@ -5,8 +5,10 @@ import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { linkedProjectId, MAX_NAME, type FolderEntry } from "@/lib/folders";
 import type { MessageKey } from "@/lib/i18n";
+import { entryFolderId } from "@/lib/folder-images";
 import { useT } from "../chat-context";
 import { FolderGlyph } from "../folder-glyph";
+import { useFolderImages } from "../folder-images";
 import { useFolderLabel } from "../folder-menu";
 import { useFolders } from "../folders-context";
 import { ConfirmPanel, DebouncedInput, SectionTitle } from "./controls";
@@ -36,7 +38,9 @@ export function EntryPane({
   const label = useFolderLabel();
   const { updateEntry, deleteEntry, openEditor, editing } = useFolders();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { imageOf, pickImage, removeImage } = useFolderImages();
   const name = label(entry);
+  const folderId = entryFolderId(entry);
   const about = ABOUT[entry.kind];
   // Per-project and per-section folders take their names from bb.
   const generated = entry.kind === "projects" || entry.kind === "sections";
@@ -49,6 +53,7 @@ export function EntryPane({
             kind={entry.kind}
             icon={entry.icon}
             color={entry.color}
+            folderId={entryFolderId(entry)}
             colorProjectId={linkedProjectId(entry)}
             label={name}
           />
@@ -84,6 +89,32 @@ export function EntryPane({
           <IconPicker value={entry.icon} kind={entry.kind} onChange={(icon) => updateEntry(entry.id, { icon })} />
         </>
       )}
+
+      {folderId !== null ? (
+        <>
+          <SectionTitle>{t("image.section")}</SectionTitle>
+          <p className="px-4 pb-2 text-[11px] text-muted-foreground">{t("image.about")}</p>
+          <div className="flex gap-2 px-4">
+            <button
+              type="button"
+              onClick={() => pickImage(folderId, name)}
+              className="flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-xs outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Icon name="chat-sidebar/camera" className="size-3.5" />
+              {t("image.choose")}
+            </button>
+            {imageOf(folderId) !== null ? (
+              <button
+                type="button"
+                onClick={() => removeImage(folderId)}
+                className="flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {t("image.remove")}
+              </button>
+            ) : null}
+          </div>
+        </>
+      ) : null}
 
       {entry.kind === "custom" && entry.rule !== null ? (
         <RuleEditor rule={entry.rule} onChange={(rule) => updateEntry(entry.id, { rule })} data={data} />

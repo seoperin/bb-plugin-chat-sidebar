@@ -16,6 +16,7 @@ import type { EntryKind } from "@/lib/folders";
 import type { MessageKey } from "@/lib/i18n";
 import { composeTarget, unreadIdsIn, type Chat, type Folder } from "@/lib/model";
 import { useT } from "./chat-context";
+import { useFolderImages } from "./folder-images";
 import { useFolders } from "./folders-context";
 import { ProjectColorSubmenu } from "./project-colors";
 
@@ -64,6 +65,7 @@ export function FolderMenu({ folder, rows, children }: { folder: Folder; rows: r
   const markRead = useMarkFolderRead(rows);
   const navigate = useBbNavigate();
   const { openEditor } = useFolders();
+  const { imageOf, pickImage, removeImage } = useFolderImages();
   const label = useFolderLabel();
   const unread = unreadIdsIn(rows, folder).length;
   const projectId = folder.id.startsWith("project:") ? folder.id.slice("project:".length) : null;
@@ -103,6 +105,16 @@ export function FolderMenu({ folder, rows, children }: { folder: Folder; rows: r
           </ContextMenuItem>
         ) : null}
         <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => pickImage(folder.id, label(folder))}>
+          <Icon name="chat-sidebar/camera" />
+          {t("image.menu")}
+        </ContextMenuItem>
+        {imageOf(folder.id) !== null ? (
+          <ContextMenuItem onSelect={() => removeImage(folder.id)}>
+            <Icon name="Trash2" />
+            {t("image.remove")}
+          </ContextMenuItem>
+        ) : null}
         <ContextMenuItem onSelect={() => openEditor(folder.entryId)}>
           <Icon name="Edit" />
           {t("folders.editOne")}

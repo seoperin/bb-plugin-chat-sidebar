@@ -7,6 +7,7 @@ import { defineRpcContract } from "@get-bb/plugin-sdk";
 import { z } from "zod";
 
 import { COLOR_IDS } from "./colors";
+import { isFolderImage } from "./folder-images";
 import { MAX_ROW_ACTIONS } from "./row-actions";
 import {
   FOLDER_SINCE,
@@ -19,6 +20,7 @@ import {
 
 export { COLORS_CHANNEL } from "./colors";
 export { FOLDERS_CHANNEL } from "./folders";
+export { FOLDER_IMAGES_CHANNEL } from "./folder-images";
 export const MAX_PROJECT_COLORS = 500;
 export { MAX_ROW_ACTIONS, ROW_ACTIONS_CHANNEL } from "./row-actions";
 
@@ -26,6 +28,9 @@ export { MAX_ROW_ACTIONS, ROW_ACTIONS_CHANNEL } from "./row-actions";
 const rowActions = z.array(z.string().min(3).max(200)).max(MAX_ROW_ACTIONS);
 
 const colorMap = z.record(z.string().min(1).max(200), z.enum(COLOR_IDS));
+
+const folderImage = z.string().refine(isFolderImage, "not a small PNG, WebP or JPEG data URL");
+const imageMap = z.record(z.string().min(1).max(250), folderImage);
 
 const ids = z.array(z.string().min(1).max(200)).max(MAX_RULE_ITEMS);
 
@@ -90,6 +95,13 @@ export const rpcContract = defineRpcContract({
     output: z.array(
       z.object({ revision: z.number().int(), replacedAt: z.number(), layout: layoutSchema.nullable() }).strict(),
     ),
+  },
+  /** Experimental: the picture shown instead of a folder's icon, by folder id. */
+  images_get: { input: z.null(), output: imageMap },
+  /** Null removes the folder's picture. */
+  images_set: {
+    input: z.object({ folderId: z.string().min(1).max(250), image: folderImage.nullable() }).strict(),
+    output: imageMap,
   },
   rowactions_get: { input: z.null(), output: rowActions },
   rowactions_set: { input: z.object({ keys: rowActions }).strict(), output: rowActions },

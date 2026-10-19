@@ -18,6 +18,7 @@ import {
 import type { MessageKey } from "@/lib/i18n";
 import { matchesRule, needsAttention, projectsByUse } from "@/lib/model";
 import { cn } from "@/lib/utils";
+import { entryFolderId } from "@/lib/folder-images";
 import { useT } from "../chat-context";
 import { FolderGlyph } from "../folder-glyph";
 import { useFolderLabel } from "../folder-menu";
@@ -207,6 +208,7 @@ function EntryRow({
           kind={entry.kind}
           icon={entry.icon}
           color={entry.color}
+          folderId={entryFolderId(entry)}
           colorProjectId={linkedProjectId(entry)}
           label={name}
           size="sm"

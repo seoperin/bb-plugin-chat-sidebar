@@ -1,17 +1,20 @@
 // A folder's square glyph: the project's avatar for a project folder, else
 // the folder's icon — on its project's colour when it is about one project,
-// on its own colour when it has one.
+// on its own colour when it has one. A folder with a picture (experimental)
+// draws the picture instead of all of these.
 import { Icon } from "@/components/ui/icon";
 import { avatarBackground, colorById, type ColorId } from "@/lib/colors";
 import { DEFAULT_ICONS, type EntryKind } from "@/lib/folders";
 import { initialOf } from "@/lib/model";
 import { cn } from "@/lib/utils";
+import { useFolderImages } from "./folder-images";
 import { useProjectColors } from "./project-colors";
 
 export function FolderGlyph({
   kind,
   icon,
   color,
+  folderId = null,
   projectId = null,
   colorProjectId = null,
   label,
@@ -22,6 +25,8 @@ export function FolderGlyph({
   kind: EntryKind;
   icon: string | null;
   color: ColorId | null;
+  /** The folder whose picture, if it has one, replaces the rest. */
+  folderId?: string | null;
   /** Draw this project's avatar instead of an icon. */
   projectId?: string | null;
   /** Fill with this project's colour, whatever `color` says. */
@@ -41,6 +46,17 @@ export function FolderGlyph({
         ? "size-8 rounded-[10px]"
         : "size-6 rounded-[7px]";
   const selectedRing = selected && ring && "ring-2 ring-foreground/70 ring-offset-2 ring-offset-sidebar";
+  const image = useFolderImages().imageOf(folderId);
+  if (image !== null) {
+    return (
+      <img
+        src={image}
+        alt=""
+        draggable={false}
+        className={cn("shrink-0 bg-sidebar-accent object-cover", box, selectedRing)}
+      />
+    );
+  }
   if (projectId !== null) {
     return (
       <span

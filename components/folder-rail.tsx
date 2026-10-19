@@ -53,6 +53,7 @@ function RailFolder({
               kind={folder.kind}
               icon={folder.icon}
               color={folder.color}
+              folderId={folder.id}
               projectId={folder.id.startsWith("project:") ? folder.id.slice("project:".length) : null}
               colorProjectId={folder.linkedProjectId}
               label={name}

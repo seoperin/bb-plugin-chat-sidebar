@@ -5,10 +5,12 @@
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 
 import { isColorId } from "./lib/colors";
+import { MAX_FOLDER_IMAGES, isFolderImage, type FolderImageMap } from "./lib/folder-images";
 import { layoutWithSettings, settingsPatchFor, type LegacyFolderSettings } from "./lib/folder-settings";
 import { createFolderStore } from "./lib/folder-store";
 import {
   COLORS_CHANNEL,
+  FOLDER_IMAGES_CHANNEL,
   FOLDERS_CHANNEL,
   MAX_PROJECT_COLORS,
   ROW_ACTIONS_CHANNEL,
@@ -20,6 +22,8 @@ import { SETTINGS } from "./lib/settings";
 
 const COLORS_KEY = "project-colors";
 const ROW_ACTIONS_KEY = "row-actions";
+/** One key per folder: a picture is up to 200KB and a value at most 256KB. */
+const IMAGE_PREFIX = "folder-image:";
 
 export default function plugin(bb: BbPluginApi) {
   const settings = bb.settings.define(SETTINGS);
@@ -48,6 +52,37 @@ export default function plugin(bb: BbPluginApi) {
       return colors;
     });
     queue = write.catch(() => undefined);
+    return write;
+  };
+
+  // --- folder pictures (experimental)
+
+  const imageKeys = async () => (await bb.storage.kv.list(IMAGE_PREFIX)).filter((key) => key.startsWith(IMAGE_PREFIX));
+
+  const readImages = async (): Promise<FolderImageMap> => {
+    const images: FolderImageMap = {};
+    for (const key of await imageKeys()) {
+      const image = await bb.storage.kv.get<unknown>(key);
+      if (isFolderImage(image)) images[key.slice(IMAGE_PREFIX.length)] = image;
+    }
+    return images;
+  };
+
+  let imageQueue: Promise<unknown> = Promise.resolve();
+  const setImage = (folderId: string, image: string | null): Promise<FolderImageMap> => {
+    const write = imageQueue.then(async () => {
+      if (image === null) {
+        await bb.storage.kv.delete(IMAGE_PREFIX + folderId);
+      } else {
+        const keys = await imageKeys();
+        if (!keys.includes(IMAGE_PREFIX + folderId) && keys.length >= MAX_FOLDER_IMAGES) throw new Error(`Up to ${MAX_FOLDER_IMAGES} folder pictures`);
+        await bb.storage.kv.set(IMAGE_PREFIX + folderId, image);
+      }
+      const images = await readImages();
+      bb.realtime.publish(FOLDER_IMAGES_CHANNEL, images);
+      return images;
+    });
+    imageQueue = write.catch(() => undefined);
     return write;
   };
 
@@ -127,6 +162,8 @@ export default function plugin(bb: BbPluginApi) {
       bb.realtime.publish(ROW_ACTIONS_CHANNEL, keys);
       return keys;
     },
+    images_get: () => readImages(),
+    images_set: ({ folderId, image }) => setImage(folderId, image),
     colors_get: () => read(),
     colors_set: ({ projectId, color }) =>
       writeColors((colors) => {

@@ -251,6 +251,17 @@ export const en = {
   "folders.change.none": "Saved without changes",
   "folders.change.more": { one: "{count} more", other: "{count} more" },
   "toast.markReadFailed": "Couldn't mark {failed} of {total} as read",
+  "image.menu": "Set picture…",
+  "image.remove": "Remove picture",
+  "image.section": "Picture",
+  "image.about": "Experimental. Shown instead of the icon and colour, like a Discord server.",
+  "image.choose": "Choose a file…",
+  "image.title": "Folder picture",
+  "image.hint": "Drag to move it; scroll or use the slider to zoom.",
+  "image.zoom": "Zoom",
+  "image.save": "Save",
+  "image.unreadable": "Couldn't open the picture",
+  "toast.imageFailed": "Couldn't save the picture",
 } satisfies Record<string, string | PluralForms>;
 
 export type MessageKey = keyof typeof en;

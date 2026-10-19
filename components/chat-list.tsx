@@ -53,6 +53,7 @@ import { useFolderLabel } from "./folder-menu";
 import { FoldersProvider, useFolders } from "./folders-context";
 import { GroupHeader } from "./group-header";
 import { NewChatButton } from "./new-chat-button";
+import { FolderImagesProvider } from "./folder-images";
 import { ProjectColorsProvider } from "./project-colors";
 import { RowActionsProvider } from "./row-actions";
 import { SearchBar } from "./search-bar";
@@ -317,6 +318,7 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
   return (
     <MutedRefreshProvider value={refreshMuted}>
       <ProjectColorsProvider projects={projectsInUse}>
+        <FolderImagesProvider>
         <div
           className={cn(
             // bb's scroll area is a flex column: without shrink-0 the list is
@@ -426,6 +428,7 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
           </div>
         </div>
         <FolderEditor rows={chats} projects={projectsInUse} sections={sections} now={now} />
+        </FolderImagesProvider>
       </ProjectColorsProvider>
     </MutedRefreshProvider>
   );
