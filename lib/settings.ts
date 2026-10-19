@@ -97,6 +97,16 @@ export type FolderLayout = "tabs" | "rail";
 export type PhoneFolderLayout = "tabs" | "same";
 export type Density = "comfortable" | "compact";
 
+/** The stored option of each layout, for writing them back from the folder editor. */
+export const FOLDER_LAYOUT_LABELS: Record<FolderLayout, (typeof FOLDER_LAYOUT_OPTIONS)[number]> = {
+  tabs: "Tabs above the list",
+  rail: "Rail on the left",
+};
+export const PHONE_LAYOUT_LABELS: Record<PhoneFolderLayout, (typeof PHONE_LAYOUT_OPTIONS)[number]> = {
+  tabs: "Tabs above the list",
+  same: "Same as on wider screens",
+};
+
 export interface ChatSettings {
   language: Language;
   projects: ProjectGrouping;

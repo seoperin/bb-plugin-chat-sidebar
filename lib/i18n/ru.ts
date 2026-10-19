@@ -273,4 +273,9 @@ export const ru: Messages = {
   "folders.railNamesOn": "Иконки и подписи",
   "folders.railNamesOff": "Только иконки",
   "toast.settingsFailed": "Не удалось изменить настройку",
+  "folders.layout": "Расположение",
+  "folders.layoutTabs": "Вкладки над списком",
+  "folders.layoutRail": "Панель слева",
+  "folders.phoneLayout": "На телефоне",
+  "folders.phoneLayoutSame": "Так же, как здесь",
 };

@@ -267,6 +267,11 @@ export const en = {
   "folders.railNamesOn": "Icons and names",
   "folders.railNamesOff": "Icons only",
   "toast.settingsFailed": "Couldn't change the setting",
+  "folders.layout": "Placement",
+  "folders.layoutTabs": "Tabs above the list",
+  "folders.layoutRail": "Rail on the left",
+  "folders.phoneLayout": "On phones",
+  "folders.phoneLayoutSame": "Same as here",
 } satisfies Record<string, string | PluralForms>;
 
 export type MessageKey = keyof typeof en;

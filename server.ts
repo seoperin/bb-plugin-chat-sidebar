@@ -18,7 +18,7 @@ import {
   type ProjectColorMap,
 } from "./lib/rpc";
 import { sanitizeRowActions } from "./lib/row-actions";
-import { SETTINGS } from "./lib/settings";
+import { FOLDER_LAYOUT_LABELS, PHONE_LAYOUT_LABELS, SETTINGS } from "./lib/settings";
 
 const COLORS_KEY = "project-colors";
 const ROW_ACTIONS_KEY = "row-actions";
@@ -162,8 +162,12 @@ export default function plugin(bb: BbPluginApi) {
       bb.realtime.publish(ROW_ACTIONS_CHANNEL, keys);
       return keys;
     },
-    settings_set: async (patch) => {
-      await settings.experimental_set(patch);
+    settings_set: async ({ folderLayout, phoneFolderLayout, folderNames }) => {
+      await settings.experimental_set({
+        ...(folderLayout !== undefined ? { folderLayout: FOLDER_LAYOUT_LABELS[folderLayout] } : {}),
+        ...(phoneFolderLayout !== undefined ? { phoneFolderLayout: PHONE_LAYOUT_LABELS[phoneFolderLayout] } : {}),
+        ...(folderNames !== undefined ? { folderNames } : {}),
+      });
       return null;
     },
     images_get: () => readImages(),

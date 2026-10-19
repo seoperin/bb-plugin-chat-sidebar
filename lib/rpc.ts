@@ -104,7 +104,17 @@ export const rpcContract = defineRpcContract({
     output: imageMap,
   },
   /** Settings the folder editor changes in place, so they need no trip to bb's plugin page. */
-  settings_set: { input: z.object({ folderNames: z.boolean() }).strict(), output: z.null() },
+  settings_set: {
+    input: z
+      .object({
+        folderLayout: z.enum(["tabs", "rail"]),
+        phoneFolderLayout: z.enum(["tabs", "same"]),
+        folderNames: z.boolean(),
+      })
+      .partial()
+      .strict(),
+    output: z.null(),
+  },
   rowactions_get: { input: z.null(), output: rowActions },
   rowactions_set: { input: z.object({ keys: rowActions }).strict(), output: rowActions },
   /** Makes a layout from history current again; null when it is no longer kept. */

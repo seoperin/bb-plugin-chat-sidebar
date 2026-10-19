@@ -20,6 +20,7 @@ import {
 import type { MessageKey } from "@/lib/i18n";
 import { matchesRule, needsAttention, projectsByUse } from "@/lib/model";
 import type { rpcContract } from "@/lib/rpc";
+import type { ChatSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { entryFolderId } from "@/lib/folder-images";
 import { useChat, useT } from "../chat-context";
@@ -131,7 +132,7 @@ export function ListPane({
         })}
       </div>
 
-      <RailNames />
+      <FolderLook />
 
       <div className="mt-5 flex flex-wrap items-center gap-x-2 px-2.5">
         <TextAction onClick={onHistory}>
@@ -162,38 +163,66 @@ export function ListPane({
   );
 }
 
-/** "Folder names on the rail" from the plugin's settings, here where its effect shows. */
-function RailNames() {
+type LookPatch = Partial<Pick<ChatSettings, "folderLayout" | "phoneFolderLayout" | "folderNames">>;
+
+/** Where the folders sit and how, from the plugin's settings, here where the effect shows. */
+function FolderLook() {
   const t = useT();
   const { settings } = useChat();
   const rpc = useRpc<typeof rpcContract>();
   // Shown at once; bb's settings catch up a moment later.
-  const [pending, setPending] = useState<boolean | null>(null);
-  if (settings.folderLayout !== "rail") return null;
-  const shown = pending ?? settings.folderNames;
-  const set = (folderNames: boolean) => {
-    if (folderNames === shown) return;
-    setPending(folderNames);
+  const [pending, setPending] = useState<LookPatch>({});
+  const shown = { ...settings, ...pending };
+  const set = (patch: LookPatch) => {
+    setPending((current) => ({ ...current, ...patch }));
     rpc
-      .call("settings_set", { folderNames })
+      .call("settings_set", patch)
       .catch((cause: unknown) =>
         toast.error(t("toast.settingsFailed"), {
           description: cause instanceof Error ? cause.message : String(cause),
         }),
       )
-      .finally(() => setPending(null));
+      .finally(() =>
+        setPending((current) => {
+          const next = { ...current };
+          for (const key of Object.keys(patch) as (keyof LookPatch)[]) delete next[key];
+          return next;
+        }),
+      );
   };
+  const rail = shown.folderLayout === "rail";
   return (
     <>
       <SectionTitle>{t("folders.look")}</SectionTitle>
-      <Field title={t("folders.railNames")}>
-        <Chip active={shown} onClick={() => set(true)}>
-          {t("folders.railNamesOn")}
+      <Field title={t("folders.layout")}>
+        <Chip active={!rail} onClick={() => set({ folderLayout: "tabs" })}>
+          {t("folders.layoutTabs")}
         </Chip>
-        <Chip active={!shown} onClick={() => set(false)}>
-          {t("folders.railNamesOff")}
+        <Chip active={rail} onClick={() => set({ folderLayout: "rail" })}>
+          {t("folders.layoutRail")}
         </Chip>
       </Field>
+      {/* Both only matter for the rail: tabs have no names to hide and look the same on a phone. */}
+      {rail ? (
+        <>
+          <Field title={t("folders.railNames")}>
+            <Chip active={shown.folderNames} onClick={() => set({ folderNames: true })}>
+              {t("folders.railNamesOn")}
+            </Chip>
+            <Chip active={!shown.folderNames} onClick={() => set({ folderNames: false })}>
+              {t("folders.railNamesOff")}
+            </Chip>
+          </Field>
+          <Field title={t("folders.phoneLayout")}>
+            <Chip active={shown.phoneFolderLayout === "tabs"} onClick={() => set({ phoneFolderLayout: "tabs" })}>
+              {t("folders.layoutTabs")}
+            </Chip>
+            <Chip active={shown.phoneFolderLayout === "same"} onClick={() => set({ phoneFolderLayout: "same" })}>
+              {t("folders.phoneLayoutSame")}
+            </Chip>
+          </Field>
+        </>
+      ) : null}
     </>
   );
 }
