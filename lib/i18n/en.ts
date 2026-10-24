@@ -58,6 +58,8 @@ export const en = {
   "row.unread": "Unread",
   "row.draft": "Draft",
   "row.subAgents": { one: "+{count} sub-agent", other: "+{count} sub-agents" },
+  "row.showSubAgents": { one: "Show {count} sub-agent", other: "Show {count} sub-agents" },
+  "row.hideSubAgents": "Hide sub-agents",
 
   // Status
   "status.done": "Done",

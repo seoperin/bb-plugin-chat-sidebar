@@ -15,6 +15,7 @@ describe("parseSettings", () => {
       sectionFolders: true,
       archiveFolder: true,
       foldChildren: true,
+      expandChildren: false,
       hideQuietAfterDays: 0,
     });
     expect(
@@ -38,6 +39,7 @@ describe("parseSettings", () => {
       language: "auto",
       hideQuietAfterDays: 0,
       foldChildren: true,
+      expandChildren: false,
     });
   });
 });

@@ -155,6 +155,41 @@ export function buildChats(
   });
 }
 
+export interface ChildNode {
+  thread: PluginSidebarThread;
+  /** 1 for a direct child of the row's root, 2 for its child, and so on. */
+  depth: number;
+}
+
+/**
+ * A row's folded children as a tree, flattened depth-first: each child right
+ * under the thread that started it. Siblings keep the row's order (most
+ * urgent first). A child whose parent is not in the row hangs off the root.
+ */
+export function childTree(row: Chat): ChildNode[] {
+  const inRow = new Set(row.children.map((child) => child.id));
+  const kids = new Map<string, PluginSidebarThread[]>();
+  for (const child of row.children) {
+    const parentId = child.parentThreadId ?? child.lifecycleOwnerThreadId;
+    const key = parentId !== null && inRow.has(parentId) ? parentId : row.thread.id;
+    const list = kids.get(key) ?? [];
+    list.push(child);
+    kids.set(key, list);
+  }
+  const out: ChildNode[] = [];
+  const seen = new Set<string>();
+  const walk = (id: string, depth: number) => {
+    for (const child of kids.get(id) ?? []) {
+      if (seen.has(child.id)) continue;
+      seen.add(child.id);
+      out.push({ thread: child, depth });
+      walk(child.id, depth + 1);
+    }
+  };
+  walk(row.thread.id, 1);
+  return out;
+}
+
 /** The most urgent live status among chats, for a folder's or heading's dot. */
 export function mostUrgentLane(chats: readonly Chat[]): "attention" | "working" | null {
   if (chats.some((chat) => chat.lane === "attention")) return "attention";

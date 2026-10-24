@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildChats,
   buildFolders,
+  childTree,
   groupByProject,
   isQuiet,
   matchesQuery,
@@ -288,5 +289,25 @@ describe("search and quiet chats", () => {
     expect(isQuiet(row, NOW - 7_200_000)).toBe(false);
     expect(isQuiet({ ...row, unread: true }, NOW)).toBe(false);
     expect(isQuiet({ ...row, lane: "done" }, NOW)).toBe(false);
+  });
+});
+
+describe("childTree", () => {
+  it("nests each child under the thread that started it, depth first", () => {
+    const [row] = buildChats(
+      [
+        thread("lead", { updatedAt: 10 }),
+        thread("a", { parentThreadId: "lead", updatedAt: 30 }),
+        thread("a1", { parentThreadId: "a", updatedAt: 20 }),
+        thread("b", { parentThreadId: "lead", updatedAt: 40 }),
+      ],
+      [],
+    );
+    expect(childTree(row!).map((node) => `${node.thread.id}:${node.depth}`)).toEqual(["b:1", "a:1", "a1:2"]);
+  });
+
+  it("hangs a child whose parent is not in the row off the root", () => {
+    const [row] = buildChats([thread("lead"), thread("x", { lifecycleOwnerThreadId: "lead" })], []);
+    expect(childTree(row!).map((node) => node.depth)).toEqual([1]);
   });
 });

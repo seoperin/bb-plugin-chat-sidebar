@@ -29,6 +29,7 @@ import { ChatMenu } from "./chat-menu";
 import { useProjectColors } from "./project-colors";
 import { RenameInput } from "./rename-input";
 import { RowQuickActions } from "./row-actions";
+import { SubThreadToggle } from "./sub-threads";
 import { toActionTarget } from "./thread-actions";
 
 export type ProviderSummary = ReturnType<typeof experimental_useProviders>["providers"][number];
@@ -237,6 +238,7 @@ export function ChatRow({
   showHost,
   sortable,
   snippet,
+  subThreads = null,
   onOpen,
 }: {
   row: Chat;
@@ -251,6 +253,8 @@ export function ChatRow({
   sortable: SortableBindings | null;
   /** While searching: the message the chat was found by, when its title was not. */
   snippet?: MessageMatch;
+  /** "Expandable sub-agents": whether the children are open, and how to flip it. */
+  subThreads?: { expanded: boolean; onToggle: () => void } | null;
   onOpen: (threadId: string, split: boolean) => void;
 }) {
   const { settings, i18n } = useChat();
@@ -271,6 +275,11 @@ export function ChatRow({
     event.preventDefault();
     onOpen(thread.id, event.metaKey || event.ctrlKey);
   };
+
+  const toggle =
+    subThreads === null ? null : (
+      <SubThreadToggle row={row} expanded={subThreads.expanded} onToggle={subThreads.onToggle} />
+    );
 
   const title = (
     <span className={cn("min-w-0 flex-1 truncate", row.unread ? "font-semibold text-foreground" : "font-medium")}>
@@ -334,6 +343,7 @@ export function ChatRow({
                     <Icon name="Pin" aria-label={t("row.pinned")} className="size-3 shrink-0 text-muted-foreground" />
                   ) : null}
                   {row.unread ? <UnreadDot muted={mutedIcon !== null} /> : null}
+                  {toggle}
                   <TimeOrShortcut row={row} now={now} />
                 </span>
               </>
@@ -350,6 +360,7 @@ export function ChatRow({
                 <span className="mt-1 flex h-4 items-center gap-1.5 text-[11.5px]">
                   <StatusBadge row={row} active={active} />
                   <WhereLine row={row} provider={provider} showProject={showProject} showHost={showHost} />
+                  {toggle}
                   {row.unread ? <UnreadDot muted={mutedIcon !== null} /> : null}
                 </span>
                 {snippet !== undefined ? <Snippet match={snippet} /> : null}

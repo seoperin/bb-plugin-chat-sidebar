@@ -54,6 +54,13 @@ export const ru: Messages = {
     many: "+{count} субагентов",
     other: "+{count} субагента",
   },
+  "row.showSubAgents": {
+    one: "Показать {count} субагента",
+    few: "Показать {count} субагентов",
+    many: "Показать {count} субагентов",
+    other: "Показать {count} субагента",
+  },
+  "row.hideSubAgents": "Скрыть субагентов",
 
   "status.done": "Готово",
   "status.doneLong": "Готово, не просмотрено",

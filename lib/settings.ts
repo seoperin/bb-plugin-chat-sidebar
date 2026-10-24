@@ -82,6 +82,13 @@ export const SETTINGS = {
     description: "Sub-agents and forks share their parent's row and lift its status.",
     default: true,
   },
+  expandChildren: {
+    type: "boolean",
+    label: "Expandable sub-agents",
+    description:
+      "With sub-agents folded: a chat that has them gets an arrow that opens them as small rows under it, nested the way they were started.",
+    default: false,
+  },
   hideQuietAfterDays: {
     type: "number",
     label: "Hide quiet chats after, days (0 = never)",
@@ -118,6 +125,7 @@ export interface ChatSettings {
   sectionFolders: boolean;
   archiveFolder: boolean;
   foldChildren: boolean;
+  expandChildren: boolean;
   hideQuietAfterDays: number;
 }
 
@@ -157,6 +165,7 @@ export function parseSettings(values: Readonly<Record<string, unknown>> | undefi
     sectionFolders: bool(source.sectionFolders, SETTINGS.sectionFolders.default),
     archiveFolder: bool(source.archiveFolder, SETTINGS.archiveFolder.default),
     foldChildren: bool(source.foldChildren, SETTINGS.foldChildren.default),
+    expandChildren: bool(source.expandChildren, SETTINGS.expandChildren.default),
     hideQuietAfterDays:
       typeof days === "number" && Number.isFinite(days) ? Math.min(3650, Math.max(0, Math.round(days))) : 0,
   };

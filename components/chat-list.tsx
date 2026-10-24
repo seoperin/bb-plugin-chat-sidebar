@@ -5,6 +5,7 @@
 // own `toThread`, so splits, pane focus, and the mobile drawer behave as in
 // bb's list.
 import {
+  Fragment,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -57,12 +58,14 @@ import { FolderImagesProvider } from "./folder-images";
 import { ProjectColorsProvider } from "./project-colors";
 import { RowActionsProvider } from "./row-actions";
 import { SearchBar } from "./search-bar";
+import { SubThreadRows } from "./sub-threads";
 import { publishFolderBridge } from "./thread-actions";
 
 const PAGE_SIZE = 60;
 const DAY = 86_400_000;
 const FOLDER_KEY = "chat-sidebar/folder";
 const COLLAPSED_KEY = "chat-sidebar/collapsed-groups";
+const EXPANDED_KEY = "chat-sidebar/expanded-chats";
 const ACTIVE_ONLY = { experimental_lifecycles: ["active"] } as const;
 const WITH_ARCHIVE = {
   experimental_lifecycles: ["active", "archived"],
@@ -142,6 +145,10 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(
     () => new Set(readStored(COLLAPSED_KEY, parseStringArray, [])),
   );
+  // Chats whose sub-agents are open ("Expandable sub-agents").
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(
+    () => new Set(readStored(EXPANDED_KEY, parseStringArray, [])),
+  );
   // On phones bb's rail already takes the left edge; tabs unless told otherwise.
   const rail = settings.folderLayout === "rail" && !(isCompactViewport && settings.phoneFolderLayout === "tabs");
   const listRef = useRef<HTMLDivElement>(null);
@@ -160,6 +167,15 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
       if (next.has(key)) next.delete(key);
       else next.add(key);
       writeStored(COLLAPSED_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  const setChatExpanded = (threadId: string, open: boolean) =>
+    setExpanded((current) => {
+      if (current.has(threadId) === open) return current;
+      const next = new Set(current);
+      if (open) next.add(threadId);
+      else next.delete(threadId);
+      writeStored(EXPANDED_KEY, JSON.stringify([...next]));
       return next;
     });
   const open = (threadId: string, split: boolean) => {
@@ -261,13 +277,17 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
     [pinDragAllowed, visible],
   );
 
+  const expandable = settings.foldChildren && settings.expandChildren;
   const renderRow = (chat: Chat) => {
     const { id } = chat.thread;
+    const hasChildren = expandable && chat.children.length > 0;
+    const childActive = activeThreadId !== null && chat.children.some((child) => child.id === activeThreadId);
+    // An open chat shows where you are among its children, so it lets go of the highlight.
+    const isOpen = hasChildren && expanded.has(id);
     const props = {
       row: chat,
-      active:
-        activeThreadId !== null &&
-        (id === activeThreadId || chat.children.some((child) => child.id === activeThreadId)),
+      active: activeThreadId !== null && (id === activeThreadId || (childActive && !isOpen)),
+      subThreads: hasChildren ? { expanded: isOpen, onToggle: () => setChatExpanded(id, !isOpen) } : null,
       now,
       provider: providerById.get(chat.thread.providerId) ?? null,
       showProject,
@@ -275,10 +295,25 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
       snippet: needle === "" ? undefined : snippetOf(chat),
       onOpen: open,
     };
-    return pinDragAllowed && chat.thread.isPinned ? (
-      <SortableChatRow key={id} {...props} />
-    ) : (
-      <ChatRow key={id} {...props} sortable={null} />
+    const chatRow =
+      pinDragAllowed && chat.thread.isPinned ? (
+        <SortableChatRow {...props} />
+      ) : (
+        <ChatRow {...props} sortable={null} />
+      );
+    return (
+      <Fragment key={id}>
+        {chatRow}
+        {isOpen ? (
+          <SubThreadRows
+            row={chat}
+            activeThreadId={activeThreadId}
+            now={now}
+            compact={settings.density === "compact"}
+            onOpen={open}
+          />
+        ) : null}
+      </Fragment>
     );
   };
 
@@ -287,6 +322,15 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       focusRow(listRef.current, event.target, event.key === "ArrowDown" ? 1 : -1);
+      return;
+    }
+    // → opens a chat's sub-agents and ← closes them, as in a tree.
+    const threadId = event.target.dataset.sidebarThreadId;
+    if (expandable && threadId !== undefined && (event.key === "ArrowRight" || event.key === "ArrowLeft")) {
+      const chat = chats.find((item) => item.thread.id === threadId);
+      if (chat === undefined || chat.children.length === 0) return;
+      event.preventDefault();
+      setChatExpanded(threadId, event.key === "ArrowRight");
     }
   };
 
