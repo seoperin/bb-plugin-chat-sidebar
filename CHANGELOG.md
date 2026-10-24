@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **Sub-agents under their chat.** With the new **Expandable sub-agents**
+  setting, a folded chat gets an arrow with its sub-agent count. It opens
+  them as small rows under the chat, each nested under the thread that
+  started it, with their status, unread dot and time; → and ← open and close
+  them from the keyboard, and the list remembers which chats are open. While
+  you are in a sub-agent, its row is the one highlighted.
+- **Sub-agents have the full thread menu.** Right-click one for bb's thread
+  menu, hover for the row buttons, double-click to rename. **Make a separate
+  chat** takes it out of the tree: it becomes its own chat, with its own
+  sub-agents, and stops reporting to the old parent.
+
 ## 0.2.3
 
 - **Muted chats stay quiet.** A chat whose bb notifications are muted, by

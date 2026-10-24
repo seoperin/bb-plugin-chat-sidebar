@@ -21,6 +21,7 @@ Chat Sidebar replaces bb's sidebar thread list with a chat list. The rest of bb'
 - **Row size:** comfortable (avatar plus a status line) or compact (one line).
 - **Section folders** and the **Archive folder**: on or off, in step with the folder editor.
 - **Fold sub-agents** into their parent: on or off.
+- **Expandable sub-agents:** an arrow on a folded chat opens its sub-agents as small rows under it, nested the way they were started. Off by default.
 - **Hide quiet chats** after a number of days. They stay one click away, and search and Attention still show them.
 - **Language:** English or Russian. The default follows the system language.
 

@@ -20,6 +20,11 @@ view, so nothing about how bb works changes.
 - **One row per task.** Sub-agents and forks fold into their parent chat and
   lift its status. The row counts busy sub-agents, and its menu jumps to any
   of them.
+- **Sub-agents under their chat** (optional). Turn on **Expandable sub-agents**
+  and a chat with sub-agents gets an arrow with their count. It opens them as
+  small rows under the chat, each under the thread that started it, so a lead
+  and its workers read as one tree. They have bb's thread menu, the row
+  buttons, and **Make a separate chat**, which takes a sub-agent out of the tree.
 - **Live status.** You can see at a glance whether a chat needs you
   (a question, an approval, a failed send, an error), is working (and on what:
   a turn, a workflow, background agents, a goal, the environment), finished
@@ -97,6 +102,8 @@ works.
 | Put a chat in a folder | Right-click the chat → Add to folder |
 | Change a project's colour | Right-click its folder, heading, or any of its chats |
 | Search | Type in the search bar. Enter opens the first match, and ↓ moves into the list |
+| Show a chat's sub-agents | With **Expandable sub-agents** on: click the arrow on the row, or press → on it (← hides them) |
+| Make a sub-agent its own chat | Right-click it under its chat → Make a separate chat |
 
 ## Settings
 
@@ -121,6 +128,7 @@ bb plugin config chat-sidebar unset folderLayout        # back to the default
 | `sectionFolders` | a folder per bb section | `true` |
 | `archiveFolder` | the Archive folder | `true` |
 | `foldChildren` | sub-agents and forks share their parent's row | `true` |
+| `expandChildren` | with `foldChildren`, an arrow on the row opens its sub-agents under it | `false` |
 | `hideQuietAfterDays` | hide calm, read, unpinned chats older than this. `0` turns it off | `0` |
 
 `projects`, `sectionFolders` and `archiveFolder` are kept in step with the
