@@ -193,6 +193,8 @@ export const ru: Messages = {
   "menu.addToFolder": "Добавить в папку",
   "menu.moveToSection": "Переместить в секцию",
   "menu.noSection": "Без секции",
+  "menu.detach": "Сделать отдельным чатом",
+  "toast.detachFailed": "Не удалось отделить чат",
   "toast.moveFailed": "Не удалось переместить чат",
   "menu.newFolderWith": "Новая папка с этим чатом",
 

@@ -6,12 +6,17 @@
 // Child rows are anchors on the thread's href, reached with the arrow keys
 // like any row, but without bb's ⌘1…9 target: those numbers belong to the
 // chats, and children appearing would renumber them. Each has bb's own thread
-// menu (archive, delete, rename, …) and the row's quick actions on hover.
+// menu (archive, delete, rename, …) plus "Make a separate chat", and the row's
+// quick actions on hover.
 import { useMemo, useState, type MouseEvent, type PointerEvent } from "react";
+import { toast } from "sonner";
 import {
   ThreadTitle,
   experimental_ThreadActionsContextMenu as ThreadActionsContextMenu,
+  experimental_THREAD_ACTION_GROUPS as GROUPS,
   experimental_useSidebarThreadSplit,
+  useSdk,
+  type PluginThreadActionsInlineItem,
 } from "@get-bb/plugin-sdk/app";
 
 import { Icon } from "@/components/ui/icon";
@@ -95,9 +100,34 @@ function ChildRow({
   onOpen: (threadId: string, split: boolean) => void;
 }) {
   const { i18n } = useChat();
+  const { t } = i18n;
+  const sdk = useSdk();
   const { thread } = node;
   const { splitProps } = experimental_useSidebarThreadSplit(thread.id);
   const target = useMemo(() => toActionTarget(thread), [thread]);
+  // Detaching clears the parent link: the thread leaves the tree, takes its
+  // own children along, and stops reporting to its former parent. A thread
+  // held only by a lifecycle owner (no parent) has nothing to detach.
+  const inline: PluginThreadActionsInlineItem[] =
+    thread.parentThreadId === null
+      ? []
+      : [
+          {
+            key: "detach",
+            group: GROUPS.organize,
+            action: {
+              label: t("menu.detach"),
+              icon: "Unlink",
+              run: async () => {
+                try {
+                  await sdk.threads.update({ threadId: thread.id, parentThreadId: null });
+                } catch {
+                  toast.error(t("toast.detachFailed"));
+                }
+              },
+            },
+          },
+        ];
   const [renaming, setRenaming] = useState(false);
   const attention = laneOf(thread) === "attention";
   const indent = { paddingLeft: `${(Math.min(node.depth, MAX_INDENT) - 1) * 12 + 6}px` };
@@ -110,7 +140,7 @@ function ChildRow({
   }
   return (
     <div className="group/row relative">
-      <ThreadActionsContextMenu thread={target} requestRename={() => setRenaming(true)}>
+      <ThreadActionsContextMenu thread={target} inline={inline} requestRename={() => setRenaming(true)}>
         <a
           href={thread.href}
           data-chat-anchor=""

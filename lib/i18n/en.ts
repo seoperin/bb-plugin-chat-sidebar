@@ -186,6 +186,8 @@ export const en = {
   "menu.addToFolder": "Add to folder",
   "menu.moveToSection": "Move to section",
   "menu.noSection": "No section",
+  "menu.detach": "Make a separate chat",
+  "toast.detachFailed": "Couldn't detach the chat",
   "toast.moveFailed": "Couldn’t move the chat",
   "menu.newFolderWith": "New folder with this chat",
 
