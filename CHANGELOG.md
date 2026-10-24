@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.4
 
 - **Sub-agents under their chat.** With the new **Expandable sub-agents**
   setting, a folded chat gets an arrow with its sub-agent count. It opens
@@ -12,6 +12,13 @@
   menu, hover for the row buttons, double-click to rename. **Make a separate
   chat** takes it out of the tree: it becomes its own chat, with its own
   sub-agents, and stops reporting to the old parent.
+- **Folder pictures (experimental).** Right-click a folder → Set picture…, or
+  pick one in the folder editor, to show a picture in place of its icon and
+  colour, like a Discord server. Drag and zoom to crop it; the picture syncs
+  across your devices.
+- **Look of the folders in the folder editor.** Placement (tabs or rail), the
+  layout on phones, and names under the rail's folders can now be changed
+  there too, in step with the plugin settings.
 
 ## 0.2.3
 

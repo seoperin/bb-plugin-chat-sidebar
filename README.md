@@ -36,7 +36,7 @@ view, so nothing about how bb works changes.
   on the left that scrolls on its own. Without names the rail lays out roomier
   icons, Discord-style. On phones the folders sit as tabs by default, since
   bb's navigation rail already takes the left edge there. Drag a folder to
-  move it.
+  move it. A folder can wear a picture instead of its icon (experimental).
 - **Your own folders.** Like Telegram's: pick chats by status, project,
   section, agent, words in the title or branch, how long they have waited, or
   when they were last active, and add or leave out chats by hand. Ready-made
