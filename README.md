@@ -49,7 +49,11 @@ view, so nothing about how bb works changes.
   syncs across your devices, and a folder about one project wears its
   colour.
 - **New chat in context.** The **+** starts a chat in the open project or
-  section. Right-click it to choose any project.
+  section. Right-click it to choose any project. While the plugin is enabled,
+  opening the new-thread composer or changing its project restores that
+  project's last saved provider, model and reasoning over bb's client-wide
+  preference. You can then pick another model for that chat. Projects without
+  saved defaults keep bb's selection; permissions and environment stay yours.
 - **Search** by title, project, branch, or sub-agent, and inside the
   conversations: a chat that only its messages mention shows up too, with the
   matching words under its title. Archived chats it finds are listed under

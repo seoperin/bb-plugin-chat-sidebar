@@ -23,6 +23,7 @@ function item(data: Parameters<typeof moveToSectionAction.item>[0]["data"], thre
     data,
     sdk: { threads: { update } } as never,
     navigate: {} as never,
+    experimental_panel: {} as never,
   });
   return { action, update };
 }

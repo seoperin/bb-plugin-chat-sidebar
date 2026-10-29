@@ -2,22 +2,22 @@ Chat Sidebar replaces bb's sidebar thread list with a chat list. The rest of bb'
 
 ## What you get
 
-- **One row per task.** Sub-agents and forks fold into their parent chat. A waiting sub-agent marks the parent as needing you, and the row counts the busy sub-agents. Right-click the row to jump to any of them.
-- **Status you can read at a glance.** Each row shows whether the chat needs you, is working (and on what: a workflow, background agents, a goal, the environment), finished unread, or has an unsent draft. Statuses that other plugins set on a row show up too.
-- **Folders.** All, Attention (waiting, working, or unread), one tab per project in order of use, one tab per bb section, and Archive. Each tab has an unread badge and a status dot. Right-click a tab to mark everything in it as read or to start a new chat there. Drag a folder to move it; on a touch screen, hold it first. A folder can wear a picture instead of its icon (experimental).
-- **Your own folders.** Like Telegram's: pick chats by status, project, section, agent, words in the title or branch, how long they have waited, or when they were last active, and add or leave out chats by hand. Start from ready-made ones such as "Waiting over an hour" or "Failed today". Hide, rename and reorder any folder, and give it an icon and a colour. The folders sync across your devices, the last 20 versions are kept, and deleting, resetting and restoring ask first.
-- **Project colours.** Each project gets its own colour on its chats' avatars, from the clearest colours first, so a few projects never end up with near-identical hues. Right-click a project tab, heading, or chat to pick one of 15 colours. The pick is saved in bb and shows on all your devices, and a folder about one project wears its colour.
-- **New chat where you are.** The + next to search starts a chat in the open project's folder, or in the open section. Right-click it to pick any project.
-- **Search.** Filter by title, project, branch, or sub-agent title, and search inside the conversations: chats that only their messages mention show up with the matching words under the title, and archived chats it finds are listed below. Enter opens the first match, and the arrow keys move through the list.
-- **bb's own thread menu.** Right-click a chat for the menu bb's rows and thread header use, with per-thread notifications and other plugins' actions, plus the list's own items: sub-agents, project colour, new chat in the project. Add to folder is in the thread header's menu too. Chats with notifications muted show a muted bell, count in no folder badge, and stay out of Attention.
+- **One row per task.** Sub-agents and forks fold into their parent. Waiting sub-agents mark the chat as needing you; busy ones add to its count. Right-click to jump to them.
+- **Live status.** See whether a chat needs you, is working (a turn, workflow, background agents, goal or environment), finished unread, or has a draft. Other plugins' row statuses show too.
+- **Folders.** All, Attention (waiting, working or unread), projects in order of use, bb sections, and Archive. Each has unread counts and a status dot. Right-click to mark all read or start a chat. Drag to reorder; on touch, hold first. Folder pictures are experimental.
+- **Your own folders.** Filter by status, project, section, agent, title or branch, waiting time or recent activity; include or exclude chats by hand. Start with templates such as "Waiting over an hour". Hide, rename, reorder, and pick an icon and colour. Folders sync across devices, retain 20 versions, and ask before deleting, resetting or restoring.
+- **Project colours.** Distinct colours on chat avatars and project folders. Right-click a project tab, heading or chat to pick one of 15; choices sync across devices.
+- **New chat where you are.** The + starts a chat in the open project or section; right-click to choose a project. With the plugin enabled, bb's new-thread composer restores the project's saved provider, model and reasoning on opening and project changes. Manual picks after that are kept. The plugin does not set permissions or environment.
+- **Search.** Find chats by title, project, branch, sub-agent or conversation text, with matching words shown under the title. Archived matches appear below. Enter opens the first match; arrows move through the list.
+- **bb's own thread menu.** Right-click for bb's menu, notifications and other plugins' actions, plus sub-agents, project colour and new chat. Add to folder also appears in the thread header. Muted chats show a bell, count in no badge, and stay out of Attention.
 - **Row buttons.** Pick up to three menu actions to show at the right of a chat on hover; the pick syncs across devices.
-- **Messenger order.** Pinned chats come first in your manual order. Drag them to reorder. After the pins, chats are sorted by latest activity, and each row shows a time label: today's time, Yesterday, a weekday, or a date. Once you scroll down, a button in the corner takes you back to the top.
-- **Everything bb's own row does.** Clicking opens the thread. ⌘-click (Ctrl-click) opens it in a split, and dragging a row into the main area splits too. The jump shortcuts (⌘1…9, next and previous) and the mobile drawer work. Double-click a row to rename it in place.
+- **Messenger order.** Drag pinned chats into your order; the rest follow latest activity. Rows show a time or date. A button returns you to the top after scrolling.
+- **bb's row controls.** Click to open; ⌘-click (Ctrl-click) or drag into the main area to split. Jump shortcuts (⌘1…9, next and previous), the mobile drawer, and double-click to rename work too.
 
 ## Settings
 
 - **Projects:** folders, headings in the list (they can stay pinned under the tabs while you scroll), or off.
-- **Folder layout:** tabs above the list, or a narrow rail on the left with an icon and a name per folder. The rail scrolls on its own, and its + lines up with the search bar. Turn off folder names for a rail of larger icons only, spaced the way Discord's is. On phones the folders sit as tabs by default, since bb's navigation rail is already beside the list; a separate setting changes that.
+- **Folder layout:** tabs or a separately scrolling rail. Hide names for larger icons. Phones default to tabs, with a separate setting to follow the desktop layout.
 - **Row size:** comfortable (avatar plus a status line) or compact (one line).
 - **Section folders** and the **Archive folder**: on or off, in step with the folder editor.
 - **Fold sub-agents** into their parent: on or off.

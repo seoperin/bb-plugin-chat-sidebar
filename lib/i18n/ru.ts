@@ -90,6 +90,7 @@ export const ru: Messages = {
   "newChat.label": "Новый чат",
   "newChat.in": "Новый чат в {name}",
   "newChat.pick": "Новый чат в…",
+  "newChat.modelDefaultsFailed": "Не удалось подставить модель проекта. Выберите модель перед отправкой.",
 
   "menu.open": "Открыть",
   "menu.openSplit": "Открыть справа",

@@ -5,10 +5,16 @@ import "./app.css";
 import { definePluginApp } from "@get-bb/plugin-sdk/app";
 
 import { ChatList } from "./components/chat-list";
+import { ProjectModelDefaults } from "./components/project-model-defaults";
 import { addToFolderAction, moveToSectionAction, registerMenuIcons } from "./components/thread-actions";
 
 export default definePluginApp((app) => {
   registerMenuIcons(app);
+  app.composer.customize({
+    id: "project-model-defaults",
+    scopes: ["new-thread"],
+    banners: [{ id: "model-defaults", chrome: "bare", component: ProjectModelDefaults }],
+  });
   app.slots.experimental_threadAction(addToFolderAction);
   app.slots.experimental_threadAction(moveToSectionAction);
   app.slots.experimental_threadList({

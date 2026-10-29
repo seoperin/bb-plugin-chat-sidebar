@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.5
+
+- **The project's model in new chats.** Opening the new-thread composer or
+  switching projects restores that project's saved provider, model and
+  reasoning instead of carrying over bb's client-wide model preference.
+  Manual picks after that are kept. Late responses from a previous project
+  cannot replace the current choice; projects without saved defaults keep
+  bb's selection. Permissions and environment are not set by the plugin.
+- Adds regression tests for project switching, manual choices, stale
+  responses and loading failures. Built with plugin SDK 0.6.94; the minimum
+  supported bb and SDK versions remain unchanged.
+
 ## 0.2.4
 
 - **Sub-agents under their chat.** With the new **Expandable sub-agents**

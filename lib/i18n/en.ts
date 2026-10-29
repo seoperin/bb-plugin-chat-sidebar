@@ -86,6 +86,7 @@ export const en = {
   "newChat.label": "New chat",
   "newChat.in": "New chat in {name}",
   "newChat.pick": "New chat in…",
+  "newChat.modelDefaultsFailed": "Couldn't apply the project's model. Choose a model before sending.",
 
   // Menu
   "menu.open": "Open",
