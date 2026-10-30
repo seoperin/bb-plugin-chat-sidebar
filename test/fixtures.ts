@@ -10,6 +10,7 @@ export function thread(id: string, overrides: Partial<PluginSidebarThread> = {})
     titleFallback: null,
     displayTitle: overrides.title ?? id,
     parentThreadId: null,
+    parentNotifications: "auto",
     lifecycleOwnerThreadId: null,
     sourceThreadId: null,
     sectionId: null,

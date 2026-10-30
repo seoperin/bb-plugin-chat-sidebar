@@ -40,6 +40,7 @@ export function toActionTarget(thread: PluginSidebarThread): PluginThreadActionT
     id: thread.id,
     projectId: thread.projectId,
     parentThreadId: thread.parentThreadId,
+    parentNotifications: thread.parentNotifications ?? "auto",
     archivedAt: thread.archivedAt,
     pinnedAt: thread.pinnedAt,
     sectionId: thread.sectionId,

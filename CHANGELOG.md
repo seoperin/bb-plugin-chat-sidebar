@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.6
+
+- Preserve the child thread's **Notify parent** setting in bb's thread menu
+  on bb 0.48.1. Older bb payloads keep the default Auto setting.
+- Build and type-check against plugin SDK 0.6.104.
+
 ## 0.2.5
 
 - **The project's model in new chats.** Opening the new-thread composer or

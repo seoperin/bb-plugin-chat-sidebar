@@ -1,6 +1,6 @@
 {
   "name": "bb-plugin-chat-sidebar",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Read your threads like a messenger: one row per task with live status, an Attention folder, project tabs, and search.",
   "license": "MIT",
   "author": "Evgeniy Perin",
@@ -122,7 +122,7 @@
     "check": "npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
-    "@get-bb/plugin-sdk": "0.6.94",
+    "@get-bb/plugin-sdk": "0.6.104",
     "@radix-ui/react-context-menu": "^2.3.3",
     "@radix-ui/react-dialog": "^1.1.19",
     "@testing-library/react": "^16.3.3",
