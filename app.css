@@ -109,6 +109,8 @@
  * fade is wide enough that a half-visible chip reads as "more this way". */
 .chat-tab-strip {
   --chat-fade: 2.5rem;
+  /* A tab scrolled into view stops clear of the fade, not under it. */
+  scroll-padding-inline: var(--chat-fade);
 }
 .chat-tab-strip[data-fade-end] {
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--chat-fade)), transparent);
@@ -144,5 +146,12 @@
   }
   .chat-tab-hit-square::before {
     inset: -0.375rem;
+  }
+  .chat-tab-hit-tight {
+    /* Above the tab strip below it, so the halo is not covered. */
+    z-index: 1;
+  }
+  .chat-tab-hit-tight::before {
+    inset: -0.125rem;
   }
 }
