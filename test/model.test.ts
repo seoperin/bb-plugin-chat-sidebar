@@ -210,6 +210,22 @@ describe("matchesRule", () => {
     expect(pick({ projects: ["proj_b"], since: "week" })).toEqual(["err"]);
   });
 
+  it.each([1, 24, 72])("uses a rolling %i-hour window with an inclusive cutoff", (hours) => {
+    const now = new Date(2026, 2, 8, 0, 30).getTime();
+    const cutoff = now - hours * 3_600_000;
+    const rows = buildChats([
+      thread("expired", { updatedAt: cutoff - 1 }),
+      thread("boundary", { updatedAt: cutoff }),
+      thread("recent", { updatedAt: now }),
+      thread("parent", { updatedAt: cutoff - 1 }),
+      thread("child", { parentThreadId: "parent", updatedAt: now - 3_600_000 }),
+    ], projects);
+    const rule = { ...emptyRule(), since: hours };
+    expect(ids(rows.filter((row) => matchesRule(row, rule, now))).sort()).toEqual(["boundary", "parent", "recent"]);
+    expect(matchesRule(rows.find((row) => row.thread.id === "boundary")!, rule, now + 1)).toBe(false);
+    expect(matchesRule(rows.find((row) => row.thread.id === "boundary")!, { ...rule, since: "today" }, now)).toBe(false);
+  });
+
   it.each([[2026, 2, 8], [2026, 10, 1], [2026, 10, 5]])(
     "collects today's activity from local midnight and rolls over (%i-%i-%i)",
     (year, month, day) => {

@@ -20,7 +20,10 @@ export const FOLDER_STATUSES = ["waiting", "failed", "working", "unread", "pinne
 export type FolderStatus = (typeof FOLDER_STATUSES)[number];
 
 export const FOLDER_SINCE = ["any", "today", "week"] as const;
-export type FolderSince = (typeof FOLDER_SINCE)[number];
+/** A named period, or a rolling window in hours. */
+export type FolderSince = (typeof FOLDER_SINCE)[number] | number;
+
+export const MAX_ACTIVITY_HOURS = 24 * 365;
 
 export interface FolderRule {
   /** Any of these. */
@@ -148,11 +151,12 @@ function newFolderId(): string {
   return `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export type TemplateId = "today" | "waitingLong" | "failedToday" | "working" | "unread" | "pinned";
+export type TemplateId = "today" | "last24Hours" | "waitingLong" | "failedToday" | "working" | "unread" | "pinned";
 
 /** Ready-made smart folders. */
 export const TEMPLATES: Record<TemplateId, { icon: string; rule: Partial<FolderRule> }> = {
   today: { icon: "Calendar", rule: { since: "today" } },
+  last24Hours: { icon: "Clock", rule: { since: 24 } },
   waitingLong: { icon: "Clock", rule: { statuses: ["waiting"], waitingMinutes: 60 } },
   failedToday: { icon: "AlertTriangle", rule: { statuses: ["failed"], since: "today" } },
   working: { icon: "Zap", rule: { statuses: ["working"] } },

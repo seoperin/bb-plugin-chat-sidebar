@@ -9,7 +9,7 @@ import {
 
 import { Icon } from "@/components/ui/icon";
 import { swatch } from "@/lib/colors";
-import { FOLDER_SINCE, FOLDER_STATUSES, hasFilters, type FolderRule } from "@/lib/folders";
+import { FOLDER_SINCE, FOLDER_STATUSES, hasFilters, MAX_ACTIVITY_HOURS, type FolderRule } from "@/lib/folders";
 import type { MessageKey } from "@/lib/i18n";
 import { matchesRule } from "@/lib/model";
 import { cn } from "@/lib/utils";
@@ -178,7 +178,22 @@ export function RuleEditor({
             {t(`folders.since.${since}` as MessageKey)}
           </Chip>
         ))}
+        <Chip active={typeof rule.since === "number"} onClick={() => set({ since: 24 })}>
+          {t("folders.since.hours")}
+        </Chip>
       </Field>
+      {typeof rule.since === "number" ? (
+        <Field title={t("folders.activityHours")}>
+          <DebouncedInput
+            label={t("folders.activityHours")}
+            type="number"
+            min={1}
+            max={MAX_ACTIVITY_HOURS}
+            value={String(rule.since)}
+            onCommit={(value) => set({ since: Number(value) })}
+          />
+        </Field>
+      ) : null}
       {rule.chats.length > 0 ? (
         <Field title={t("folders.chats")}>
           {handList(rule.chats, (id) => set({ chats: rule.chats.filter((chat) => chat !== id) }))}

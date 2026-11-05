@@ -40,11 +40,13 @@ view, so nothing about how bb works changes.
 - **Your own folders.** Like Telegram's: pick chats by status, project,
   section, agent, words in the title or branch, how long they have waited, or
   when they were last active, and add or leave out chats by hand. Ready-made
-  ones to start from: today, waiting over an hour, failed today, working now,
-  unread, pinned. **Today** collects chats active since midnight in your
+  ones to start from: today, last 24 hours, waiting over an hour, failed today,
+  working now, unread, pinned. **Today** collects chats active since midnight in your
   browser's local time zone, including activity in folded sub-agents, and
   refreshes every 30 seconds. Add it from **Edit folders → Ready-made folders →
-  Today**. Hide, rename, reorder, and give any folder an icon and a colour.
+  Today**. **Last 24 hours** uses a rolling window instead; choose **Last N hours**
+  in any folder's activity filter to set a whole number of hours (1–8760).
+  Hide, rename, reorder, and give any folder an icon and a colour.
   The folders sync across your devices; the last 20 versions are kept, and
   deleting, resetting and restoring ask first.
 - **Project colours.** Clear colours are assigned automatically, so a few

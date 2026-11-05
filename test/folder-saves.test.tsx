@@ -78,7 +78,10 @@ describe("folder saves", () => {
     expect(saves.map((save) => save.baseRevision)).toEqual([5]);
   });
 
-  it("creates and saves the Today template from the editor", async () => {
+  it.each([
+    { name: "Today", icon: "Calendar", since: "today" },
+    { name: "Last 24 hours", icon: "Clock", since: 24 },
+  ])("creates and saves the $name template from the editor", async ({ name, icon, since }) => {
     const saves: { layout: FolderLayout; baseRevision: number }[] = [];
     const loaded = await loadPluginApp(app);
     renderSlot(
@@ -105,14 +108,20 @@ describe("folder saves", () => {
     );
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit folders" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Today" }));
+    fireEvent.click(await screen.findByRole("button", { name }));
 
     await waitFor(() => expect(saves).toHaveLength(1));
     expect(saves[0]?.baseRevision).toBe(10);
     expect(saves[0]?.layout.entries.find((entry) => entry.kind === "custom")).toMatchObject({
-      name: "Today",
-      icon: "Calendar",
-      rule: { since: "today", statuses: [], projects: [], chats: [] },
+      name,
+      icon,
+      rule: { since, statuses: [], projects: [], chats: [] },
     });
+    if (typeof since === "number") {
+      const input = await screen.findByRole("spinbutton", { name: "Number of hours" });
+      fireEvent.change(input, { target: { value: "72" } });
+      fireEvent.blur(input);
+      await waitFor(() => expect(saves.at(-1)?.layout.entries.find((entry) => entry.kind === "custom")?.rule?.since).toBe(72));
+    }
   });
 });

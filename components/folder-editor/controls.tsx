@@ -130,7 +130,7 @@ export function ConfirmPanel({
 const same = (draft: string, value: string) => draft.trim() === value.trim();
 
 /**
- * A text field that saves after a pause rather than on every key, and saves
+ * A field that saves after a pause rather than on every key, and saves
  * whatever is left when it goes away (the dialog closed, another folder picked).
  */
 export function DebouncedInput({
@@ -140,6 +140,9 @@ export function DebouncedInput({
   maxLength,
   label,
   autoFocus = false,
+  type = "text",
+  min,
+  max,
 }: {
   value: string;
   onCommit: (next: string) => void;
@@ -148,31 +151,46 @@ export function DebouncedInput({
   label: string;
   /** Focus and select the text, for a folder that was just made. */
   autoFocus?: boolean;
+  type?: "text" | "number";
+  min?: number;
+  max?: number;
 }) {
   const [draft, setDraft] = useState(value);
+  const valid = type === "text" || (
+    draft.trim() !== "" &&
+    Number.isInteger(Number(draft)) &&
+    Number(draft) >= (min ?? -Infinity) &&
+    Number(draft) <= (max ?? Infinity)
+  );
   const commitRef = useRef(onCommit);
   commitRef.current = onCommit;
-  const latest = useRef({ draft, value });
-  latest.current = { draft, value };
+  const latest = useRef({ draft, value, valid });
+  latest.current = { draft, value, valid };
   const focused = useRef(false);
 
   useEffect(() => {
     if (!focused.current) setDraft(value);
   }, [value]);
   useEffect(() => {
-    if (same(draft, latest.current.value)) return;
+    if (same(draft, latest.current.value) || !latest.current.valid) return;
     const timer = setTimeout(() => commitRef.current(draft), 500);
     return () => clearTimeout(timer);
   }, [draft]);
   useEffect(
     () => () => {
-      if (!same(latest.current.draft, latest.current.value)) commitRef.current(latest.current.draft);
+      if (latest.current.valid && !same(latest.current.draft, latest.current.value)) {
+        commitRef.current(latest.current.draft);
+      }
     },
     [],
   );
 
   return (
     <input
+      type={type}
+      min={min}
+      max={max}
+      required={type === "number"}
       aria-label={label}
       value={draft}
       maxLength={maxLength}
@@ -184,7 +202,8 @@ export function DebouncedInput({
       }}
       onBlur={() => {
         focused.current = false;
-        if (!same(draft, value)) commitRef.current(draft);
+        if (!valid) setDraft(value);
+        else if (!same(draft, value)) commitRef.current(draft);
       }}
       onChange={(event) => setDraft(event.target.value)}
       onKeyDown={(event) => {
