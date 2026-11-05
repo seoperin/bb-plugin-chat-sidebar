@@ -139,6 +139,7 @@ export const ru: Messages = {
   "folders.editOne": "Изменить папку",
   "folders.new": "Новая папка",
   "folders.ready": "Готовые папки",
+  "folders.template.today": "Сегодня",
   "folders.template.waitingLong": "Ждут больше часа",
   "folders.template.failedToday": "С ошибкой сегодня",
   "folders.template.working": "Работают сейчас",

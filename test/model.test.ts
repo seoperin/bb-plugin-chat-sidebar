@@ -11,7 +11,7 @@ import {
   pinNeighbors,
   unreadIdsIn,
 } from "../lib/model";
-import { customEntry, defaultLayout, emptyRule, normalizeLayout, type FolderLayout } from "../lib/folders";
+import { customEntry, defaultLayout, emptyRule, normalizeLayout, TEMPLATES, type FolderLayout } from "../lib/folders";
 import { NOW, project, thread } from "./fixtures";
 
 const layoutOf = (projectTabs: boolean, sectionTabs: boolean, archiveTab: boolean): FolderLayout =>
@@ -209,6 +209,33 @@ describe("matchesRule", () => {
   it("filters by activity since", () => {
     expect(pick({ projects: ["proj_b"], since: "week" })).toEqual(["err"]);
   });
+
+  it.each([[2026, 2, 8], [2026, 10, 1], [2026, 10, 5]])(
+    "collects today's activity from local midnight and rolls over (%i-%i-%i)",
+    (year, month, day) => {
+      const midnight = new Date(year, month, day).getTime();
+      const now = new Date(year, month, day, 23, 59, 59, 999).getTime();
+      const tomorrow = new Date(year, month, day + 1).getTime();
+      const entry = customEntry("Today", TEMPLATES.today.icon, TEMPLATES.today.rule);
+      const rows = buildChats([
+        thread("yesterday", { updatedAt: midnight - 1 }),
+        thread("midnight", { updatedAt: midnight }),
+        thread("recent", { projectId: "proj_b", updatedAt: now }),
+        thread("parent", { updatedAt: midnight - 1 }),
+        thread("child", { parentThreadId: "parent", updatedAt: midnight + 1 }),
+        thread("attention", { updatedAt: midnight - 1, latestAttentionAt: midnight + 2 }),
+        thread("archived", { updatedAt: now, isArchived: true }),
+        thread("hidden", { updatedAt: now, isHidden: true }),
+      ], projects);
+      const layout = { ...layoutOf(false, false, false), entries: [entry] };
+      const inside = (at: number) => {
+        const folder = buildFolders(rows, projects, [], layout, at)[0]!;
+        return ids(rows.filter(folder.matches)).sort();
+      };
+      expect(inside(now)).toEqual(["attention", "midnight", "parent", "recent"]);
+      expect(inside(tomorrow)).toEqual([]);
+    },
+  );
 });
 
 describe("groupByProject", () => {

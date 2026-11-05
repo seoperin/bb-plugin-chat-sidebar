@@ -137,6 +137,7 @@ export const en = {
   "folders.editOne": "Edit folder",
   "folders.new": "New folder",
   "folders.ready": "Ready-made folders",
+  "folders.template.today": "Today",
   "folders.template.waitingLong": "Waiting over an hour",
   "folders.template.failedToday": "Failed today",
   "folders.template.working": "Working now",

@@ -2,7 +2,7 @@
 // Saves from the folder editor: once the backend refuses one because another
 // device saved first, the saves queued behind it are dropped rather than
 // sent on the newer revision, where they would overwrite that device's folders.
-import { act, cleanup, fireEvent, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadPluginApp, renderSlot } from "@get-bb/plugin-sdk/testing/app";
 
@@ -76,5 +76,43 @@ describe("folder saves", () => {
     await act(async () => new Promise((resolve) => setTimeout(resolve, 20)));
 
     expect(saves.map((save) => save.baseRevision)).toEqual([5]);
+  });
+
+  it("creates and saves the Today template from the editor", async () => {
+    const saves: { layout: FolderLayout; baseRevision: number }[] = [];
+    const loaded = await loadPluginApp(app);
+    renderSlot(
+      loaded.threadLists[0]!,
+      { activeThreadId: null, activeProjectId: null, isCompactViewport: false, onNavigate: () => {}, searchQuery: "" },
+      {
+        sidebarThreads: {
+          status: "ready",
+          threads: [thread("t1")],
+          projects: [project("proj_a", "Alpha")],
+          sections: [],
+        },
+        settings: { language: "English" },
+        rpc: {
+          colors_get: () => ({}),
+          folders_get: () => ({ layout: mine, revision: 10 }),
+          folders_set: (input) => {
+            const save = input as { layout: FolderLayout; baseRevision: number };
+            saves.push(save);
+            return { ok: true, layout: save.layout, revision: save.baseRevision + 1 };
+          },
+        },
+      },
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit folders" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Today" }));
+
+    await waitFor(() => expect(saves).toHaveLength(1));
+    expect(saves[0]?.baseRevision).toBe(10);
+    expect(saves[0]?.layout.entries.find((entry) => entry.kind === "custom")).toMatchObject({
+      name: "Today",
+      icon: "Calendar",
+      rule: { since: "today", statuses: [], projects: [], chats: [] },
+    });
   });
 });

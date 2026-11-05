@@ -148,10 +148,11 @@ function newFolderId(): string {
   return `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export type TemplateId = "waitingLong" | "failedToday" | "working" | "unread" | "pinned";
+export type TemplateId = "today" | "waitingLong" | "failedToday" | "working" | "unread" | "pinned";
 
 /** Ready-made smart folders. */
 export const TEMPLATES: Record<TemplateId, { icon: string; rule: Partial<FolderRule> }> = {
+  today: { icon: "Calendar", rule: { since: "today" } },
   waitingLong: { icon: "Clock", rule: { statuses: ["waiting"], waitingMinutes: 60 } },
   failedToday: { icon: "AlertTriangle", rule: { statuses: ["failed"], since: "today" } },
   working: { icon: "Zap", rule: { statuses: ["working"] } },
