@@ -10,6 +10,22 @@
 - The tab strip's edge fade is wider (2.5rem) so a half-visible tab reads as
   "more this way", and it also sets `-webkit-mask-image` for older Safari.
 
+## 0.2.8
+
+- Add a **Last 24 hours** smart folder alongside **Today**. Any custom folder
+  can use **Last N hours** with an adjustable rolling window of 1–8760 hours.
+  **Today** continues to start at local midnight.
+- Validate the hour count before saving and on the backend; existing folder
+  rules keep their behavior.
+
+## 0.2.7
+
+- Add a ready-made **Today** folder for chats active since midnight in the
+  browser's local time zone, including activity in folded sub-agents.
+  Create it from **Edit folders → Ready-made folders → Today**; the contents
+  refresh every 30 seconds.
+- Test folder creation, local midnight boundaries, and rollover to a new day.
+
 ## 0.2.6
 
 - Preserve the child thread's **Notify parent** setting in bb's thread menu

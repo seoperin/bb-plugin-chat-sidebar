@@ -257,6 +257,7 @@ export function matchesRule(row: Chat, rule: FolderRule, now: number): boolean {
     if (since === 0 || now - since < rule.waitingMinutes * MINUTE) return false;
   }
   if (rule.since === "today" && row.activityAt < startOfToday(now)) return false;
+  if (typeof rule.since === "number" && row.activityAt < now - rule.since * 60 * MINUTE) return false;
   if (rule.since === "week" && row.activityAt < now - 7 * 24 * 60 * MINUTE) return false;
   if (rule.excludeRead && !row.unread) return false;
   if (rule.excludeProjects.includes(row.thread.projectId)) return false;

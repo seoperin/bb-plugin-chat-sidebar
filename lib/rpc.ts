@@ -12,6 +12,7 @@ import { MAX_ROW_ACTIONS } from "./row-actions";
 import {
   FOLDER_SINCE,
   FOLDER_STATUSES,
+  MAX_ACTIVITY_HOURS,
   MAX_CUSTOM_FOLDERS,
   MAX_NAME,
   MAX_RULE_ITEMS,
@@ -46,7 +47,7 @@ const ruleSchema = z
       .int()
       .min(0)
       .max(60 * 24 * 30),
-    since: z.enum(FOLDER_SINCE),
+    since: z.union([z.enum(FOLDER_SINCE), z.number().int().min(1).max(MAX_ACTIVITY_HOURS)]),
     chats: ids,
     excludeRead: z.boolean(),
     excludeProjects: ids,
