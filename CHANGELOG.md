@@ -7,6 +7,15 @@
   Russian rules), or a stable one by a hash of the title. Right-click a chat →
   **Chat icon…** to pick another; picks sync across devices. The default
   stays **Project letter**.
+- Keep icon updates in revision order, retry failed loads, and save manual
+  picks sequentially without rolling back newer changes after an error.
+- **Phone layout.** Folder-tab counts are centred in their pills (flex,
+  `line-height: 1`, tabular digits). The search field, the + button and the
+  tabs share one 6px gap and, on phones, one row rhythm: a 40px search and +
+  button, 32px tabs with a 44px tap target. The search icon and clear button
+  are centred on the field's height.
+- The tab strip's edge fade is wider (2.5rem) so a half-visible tab reads as
+  "more this way", and it also sets `-webkit-mask-image` for older Safari.
 
 ## 0.2.8
 

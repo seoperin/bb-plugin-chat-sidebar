@@ -14,6 +14,11 @@ export const MAX_CHAT_ICONS = 2000;
 /** Thread id → icon name. */
 export type ChatIconMap = Record<string, string>;
 
+export interface ChatIconState {
+  revision: number;
+  icons: ChatIconMap;
+}
+
 const KNOWN = new Set(FOLDER_ICONS);
 
 export function isChatIcon(value: unknown): value is string {
@@ -27,6 +32,18 @@ export function sanitizeChatIcons(value: unknown): ChatIconMap {
     if (threadId.length > 0 && threadId.length <= 200 && isChatIcon(icon)) icons[threadId] = icon;
   }
   return icons;
+}
+
+export function sanitizeChatIconState(value: unknown): ChatIconState {
+  if (
+    value !== null && typeof value === "object" &&
+    "revision" in value && typeof value.revision === "number" &&
+    Number.isSafeInteger(value.revision) && value.revision >= 0 && "icons" in value
+  ) {
+    return { revision: value.revision, icons: sanitizeChatIcons(value.icons) };
+  }
+  // Preserve picks saved by the original PR before revisions were introduced.
+  return { revision: 0, icons: sanitizeChatIcons(value) };
 }
 
 interface Rule {

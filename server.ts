@@ -4,7 +4,7 @@
 // icons picked for chats, and the quick buttons on a row.
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 
-import { MAX_CHAT_ICONS, sanitizeChatIcons, type ChatIconMap } from "./lib/chat-icons";
+import { MAX_CHAT_ICONS, sanitizeChatIconState, type ChatIconState } from "./lib/chat-icons";
 import { isColorId } from "./lib/colors";
 import { MAX_FOLDER_IMAGES, isFolderImage, type FolderImageMap } from "./lib/folder-images";
 import { layoutWithSettings, settingsPatchFor, type LegacyFolderSettings } from "./lib/folder-settings";
@@ -60,20 +60,21 @@ export default function plugin(bb: BbPluginApi) {
 
   // --- chat icons picked by hand
 
-  const readIcons = async (): Promise<ChatIconMap> => sanitizeChatIcons(await bb.storage.kv.get<unknown>(CHAT_ICONS_KEY));
+  const readIcons = async (): Promise<ChatIconState> => sanitizeChatIconState(await bb.storage.kv.get<unknown>(CHAT_ICONS_KEY));
 
   let iconQueue: Promise<unknown> = Promise.resolve();
-  const setIcon = (threadId: string, icon: string | null): Promise<ChatIconMap> => {
+  const setIcon = (threadId: string, icon: string | null): Promise<ChatIconState> => {
     const write = iconQueue.then(async () => {
-      const icons = await readIcons();
+      const { revision, icons } = await readIcons();
       // Re-set picks move to the end, so the oldest are the first to go past the cap.
       delete icons[threadId];
       if (icon !== null) icons[threadId] = icon;
       const ids = Object.keys(icons);
       for (const id of ids.slice(0, Math.max(0, ids.length - MAX_CHAT_ICONS))) delete icons[id];
-      await bb.storage.kv.set(CHAT_ICONS_KEY, icons);
-      bb.realtime.publish(CHAT_ICONS_CHANNEL, icons);
-      return icons;
+      const next = { revision: revision + 1, icons };
+      await bb.storage.kv.set(CHAT_ICONS_KEY, next);
+      bb.realtime.publish(CHAT_ICONS_CHANNEL, next);
+      return next;
     });
     iconQueue = write.catch(() => undefined);
     return write;

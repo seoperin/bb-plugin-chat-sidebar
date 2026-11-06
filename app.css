@@ -105,13 +105,53 @@
   }
 }
 
-/* The tab strip fades an edge while there is more to scroll that way. */
+/* The tab strip fades an edge while there is more to scroll that way. The
+ * fade is wide enough that a half-visible chip reads as "more this way". */
+.chat-tab-strip {
+  --chat-fade: 2.5rem;
+  /* A tab scrolled into view stops clear of the fade, not under it. */
+  scroll-padding-inline: var(--chat-fade);
+}
 .chat-tab-strip[data-fade-end] {
-  mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--chat-fade)), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--chat-fade)), transparent);
 }
 .chat-tab-strip[data-fade-start] {
-  mask-image: linear-gradient(to left, #000 calc(100% - 1.5rem), transparent);
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - var(--chat-fade)), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - var(--chat-fade)), transparent);
 }
 .chat-tab-strip[data-fade-start][data-fade-end] {
-  mask-image: linear-gradient(to right, transparent, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--chat-fade),
+    #000 calc(100% - var(--chat-fade)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--chat-fade),
+    #000 calc(100% - var(--chat-fade)),
+    transparent
+  );
+}
+
+/* Phone: the tabs and their icon buttons are 32px; an invisible 44px target sits around each. */
+@media (pointer: coarse) and (max-width: 767.98px) {
+  .chat-tab-hit::before {
+    content: "";
+    position: absolute;
+    inset: -0.375rem -0.1875rem;
+  }
+  .chat-tab-hit-square::before {
+    inset: -0.375rem;
+  }
+  .chat-tab-hit-tight {
+    /* Above the tab strip below it, so the halo is not covered. */
+    z-index: 1;
+  }
+  .chat-tab-hit-tight::before {
+    inset: -0.125rem;
+  }
 }

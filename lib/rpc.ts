@@ -34,6 +34,7 @@ const colorMap = z.record(z.string().min(1).max(200), z.enum(COLOR_IDS));
 
 const chatIcon = z.string().max(60).refine(isChatIcon, "not a known icon");
 const chatIconMap = z.record(z.string().min(1).max(200), chatIcon);
+const chatIconState = z.object({ revision: z.number().int().min(0), icons: chatIconMap }).strict();
 
 const folderImage = z.string().refine(isFolderImage, "not a small PNG, WebP or JPEG data URL");
 const imageMap = z.record(z.string().min(1).max(250), folderImage);
@@ -85,11 +86,11 @@ export const rpcContract = defineRpcContract({
     output: colorMap,
   },
   /** The icon picked by hand for a chat, by thread id; chats without one get theirs from the title. */
-  chaticons_get: { input: z.null(), output: chatIconMap },
+  chaticons_get: { input: z.null(), output: chatIconState },
   /** Null goes back to the icon from the title. */
   chaticons_set: {
     input: z.object({ threadId: z.string().min(1).max(200), icon: chatIcon.nullable() }).strict(),
-    output: chatIconMap,
+    output: chatIconState,
   },
   /** A null layout: not arranged yet, so the list derives the folders from the settings. */
   folders_get: { input: z.null(), output: folderState },

@@ -38,7 +38,7 @@ export type ProviderSummary = ReturnType<typeof experimental_useProviders>["prov
 function Avatar({ row, size }: { row: Chat; size: "md" | "sm" }) {
   const { avatar } = useChat().settings;
   const color = useProjectColors().colorOf(row.project?.id ?? null, row.thread.id);
-  const icon = useChatIcons().iconOf(row.thread.id, row.thread.displayTitle);
+  const { iconOf } = useChatIcons();
   const busy = row.lane === "working" || row.lane === "attention";
   return (
     <span
@@ -50,7 +50,7 @@ function Avatar({ row, size }: { row: Chat; size: "md" | "sm" }) {
       style={{ background: avatarBackground(color) }}
     >
       {avatar === "icon" ? (
-        <Icon name={icon} className={size === "md" ? "size-[18px]" : "size-3"} />
+        <Icon name={iconOf(row.thread.id, row.thread.displayTitle)} className={size === "md" ? "size-[18px]" : "size-3"} />
       ) : (
         avatarLetter(row)
       )}

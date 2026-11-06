@@ -8,12 +8,12 @@ import { useRealtime, useRealtimeConnectionState, useRpc } from "@get-bb/plugin-
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Icon } from "@/components/ui/icon";
-import { CHAT_ICONS_CHANNEL, autoChatIcon, sanitizeChatIcons, type ChatIconMap } from "@/lib/chat-icons";
+import { CHAT_ICONS_CHANNEL, autoChatIcon, sanitizeChatIconState, type ChatIconState } from "@/lib/chat-icons";
 import { FOLDER_ICONS } from "@/lib/folders";
 import type { rpcContract } from "@/lib/rpc";
 import { readStored, writeStored } from "@/lib/storage";
 import { cn } from "@/lib/utils";
-import { useT } from "./chat-context";
+import { useChat, useT } from "./chat-context";
 
 interface ChatIconTarget {
   id: string;
@@ -29,6 +29,7 @@ interface ChatIconsValue {
 }
 
 const STORAGE_KEY = "chat-sidebar/chat-icons";
+const RETRIES = [1_000, 3_000, 10_000];
 
 const ChatIconsContext = createContext<ChatIconsValue>({
   iconOf: (threadId, title) => autoChatIcon(title, threadId),
@@ -38,50 +39,69 @@ const ChatIconsContext = createContext<ChatIconsValue>({
 
 export function ChatIconsProvider({ children }: { children: ReactNode }) {
   const t = useT();
+  const enabled = useChat().settings.avatar === "icon";
   const rpc = useRpc<typeof rpcContract>();
   const rpcRef = useRef(rpc);
   rpcRef.current = rpc;
-  const [picks, setPicksState] = useState<ChatIconMap>(() =>
-    readStored(STORAGE_KEY, (raw) => sanitizeChatIcons(JSON.parse(raw)), {}),
+  const [state, setState] = useState<ChatIconState>(() =>
+    readStored(STORAGE_KEY, (raw) => sanitizeChatIconState(JSON.parse(raw)), { revision: 0, icons: {} }),
   );
+  const stateRef = useRef(state);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; };
+  }, []);
   const [target, setTarget] = useState<ChatIconTarget | null>(null);
-  const setPicks = useCallback((next: ChatIconMap) => {
+  const receive = useCallback((payload: unknown) => {
+    const next = sanitizeChatIconState(payload);
+    if (!alive.current || next.revision < stateRef.current.revision) return;
+    stateRef.current = next;
     writeStored(STORAGE_KEY, JSON.stringify(next));
-    setPicksState(next);
+    setState(next);
   }, []);
 
   // Load on mount and whenever the realtime connection comes back: picks
   // published while it was down are not replayed.
   const connection = useRealtimeConnectionState();
   useEffect(() => {
-    if (connection !== "connected") return;
-    rpcRef.current
-      .call("chaticons_get", null)
-      .then((stored) => setPicks(sanitizeChatIcons(stored)))
-      .catch(() => undefined);
-  }, [connection, setPicks]);
-  useRealtime(CHAT_ICONS_CHANNEL, (payload) => setPicks(sanitizeChatIcons(payload)));
+    if (!enabled) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const attempt = (index: number) => {
+      rpcRef.current
+        .call("chaticons_get", null)
+        .then((stored) => { if (active) receive(stored); })
+        .catch(() => {
+          const delay = RETRIES[index];
+          if (active && delay !== undefined) timer = setTimeout(() => attempt(index + 1), delay);
+        });
+    };
+    attempt(0);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [connection, enabled, receive]);
+  useRealtime(CHAT_ICONS_CHANNEL, receive);
 
-  const picksRef = useRef(picks);
-  picksRef.current = picks;
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
   const save = useCallback(
     (threadId: string, icon: string | null) => {
-      const previous = picksRef.current;
-      const next = { ...previous };
-      delete next[threadId];
-      if (icon !== null) next[threadId] = icon;
-      setPicks(next);
-      rpcRef.current
-        .call("chaticons_set", { threadId, icon })
-        .then((stored) => setPicks(sanitizeChatIcons(stored)))
+      // Show confirmed picks; a failed write has nothing to roll back.
+      saveQueue.current = saveQueue.current
+        .then(() => rpcRef.current.call("chaticons_set", { threadId, icon }))
+        .then(receive)
         .catch((cause: unknown) => {
-          setPicks(previous);
-          toast.error(t("chatIcon.failed"), { description: cause instanceof Error ? cause.message : String(cause) });
+          if (alive.current) {
+            toast.error(t("chatIcon.failed"), { description: cause instanceof Error ? cause.message : String(cause) });
+          }
         });
     },
-    [setPicks, t],
+    [receive, t],
   );
 
+  const picks = state.icons;
   const value = useMemo<ChatIconsValue>(
     () => ({
       iconOf: (threadId, title) => picks[threadId] ?? autoChatIcon(title, threadId),

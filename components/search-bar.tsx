@@ -20,7 +20,7 @@ export function SearchBar({
     <div className="relative min-w-0 flex-1">
       <Icon
         name="Search"
-        className="pointer-events-none absolute left-2.5 top-[7px] size-3.5 text-muted-foreground"
+        className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground max-md:pointer-coarse:left-3 max-md:pointer-coarse:size-4"
       />
       <Input
         type="search"
@@ -39,14 +39,14 @@ export function SearchBar({
         }}
         placeholder={t("search.placeholder")}
         aria-label={t("search.label")}
-        className="h-7 rounded-full border-transparent bg-sidebar-accent/70 pl-7 pr-7 text-xs shadow-none [&::-webkit-search-cancel-button]:hidden"
+        className="h-7 rounded-full border-transparent bg-sidebar-accent/70 pl-7 pr-7 text-xs max-md:pointer-coarse:pl-9 max-md:pointer-coarse:pr-10 shadow-none [&::-webkit-search-cancel-button]:hidden"
       />
       {query !== "" ? (
         <button
           type="button"
           aria-label={t("search.clear")}
           onClick={() => onChange("")}
-          className="absolute right-1.5 top-[5px] grid size-[18px] cursor-pointer place-items-center rounded-full text-muted-foreground hover:text-foreground"
+          className="chat-tab-hit chat-tab-hit-square absolute right-1.5 top-1/2 grid size-[18px] -translate-y-1/2 cursor-pointer place-items-center rounded-full text-muted-foreground hover:text-foreground max-md:pointer-coarse:right-1 max-md:pointer-coarse:size-8"
         >
           <Icon name="X" className="size-3" />
         </button>

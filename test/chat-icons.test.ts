@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { RULE_ICONS, autoChatIcon, isChatIcon, ruleIconFor, sanitizeChatIcons } from "../lib/chat-icons";
+import { RULE_ICONS, autoChatIcon, isChatIcon, ruleIconFor, sanitizeChatIcons, sanitizeChatIconState } from "../lib/chat-icons";
 import { FOLDER_ICONS } from "../lib/folders";
 import { rpcContract } from "../lib/rpc";
 
@@ -47,6 +47,15 @@ describe("chat icon from the title", () => {
 });
 
 describe("hand-picked chat icons", () => {
+  it("reads revisioned state and preserves picks from the original PR", () => {
+    expect(sanitizeChatIconState({ a: "Star" })).toEqual({ revision: 0, icons: { a: "Star" } });
+    expect(sanitizeChatIconState({ revision: 3, icons: { a: "Star", b: "Unknown" } }))
+      .toEqual({ revision: 3, icons: { a: "Star" } });
+    expect(sanitizeChatIconState(null)).toEqual({ revision: 0, icons: {} });
+    expect(rpcContract.chaticons_get.output.safeParse({ revision: -1, icons: {} }).success).toBe(false);
+    expect(rpcContract.chaticons_get.output.safeParse({ revision: 3, icons: { a: "Star" } }).success).toBe(true);
+  });
+
   it("drops unknown icons and bad ids", () => {
     expect(sanitizeChatIcons({ a: "Bug", b: "NoSuchIcon", "": "Bug", c: 5 })).toEqual({ a: "Bug" });
     expect(sanitizeChatIcons(null)).toEqual({});
