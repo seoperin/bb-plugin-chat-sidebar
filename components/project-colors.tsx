@@ -12,6 +12,7 @@ import {
   useRealtimeConnectionState,
   useRpc,
   type PluginSidebarProject,
+  type PluginSidebarThread,
 } from "@get-bb/plugin-sdk/app";
 
 import {
@@ -24,7 +25,9 @@ import { Icon } from "@/components/ui/icon";
 import {
   COLORS_CHANNEL,
   PALETTE,
+  THREAD_COLORS_CHANNEL,
   assignProjectColors,
+  colorById,
   colorForKey,
   isColorId,
   swatch,
@@ -32,6 +35,7 @@ import {
   type PaletteColor,
 } from "@/lib/colors";
 import type { MessageKey } from "@/lib/i18n";
+import { rootOf } from "@/lib/model";
 import type { ProjectColorMap, rpcContract } from "@/lib/rpc";
 import { readStored, writeStored } from "@/lib/storage";
 import { useT } from "./chat-context";
@@ -42,6 +46,12 @@ interface ProjectColorsValue {
   /** The colour the user picked, or null for automatic. */
   pickOf(projectId: string): ColorId | null;
   setColor(projectId: string, color: ColorId | null): void;
+  /** The colour of the thread's branch: its root's pick, else the project's. */
+  threadColorOf(thread: PluginSidebarThread, projectId: string | null): PaletteColor;
+  /** Whether the thread heads its own branch, and so can have its own colour. */
+  isRootThread(thread: PluginSidebarThread): boolean;
+  threadPickOf(threadId: string): ColorId | null;
+  setThreadColor(threadId: string, color: ColorId | null): void;
 }
 
 const ProjectColorsContext = createContext<ProjectColorsValue | null>(null);
@@ -57,37 +67,35 @@ function sanitize(value: unknown): ProjectColorMap {
 
 /** Backend retries after a failed load, in milliseconds. */
 const RETRIES = [1_000, 3_000, 10_000];
-const STORAGE_KEY = "chat-sidebar/project-colors";
 
-/** Last colours seen on this page; outlives a list that bb mounts again. */
-let remembered: ProjectColorMap | null = null;
-
-function recall(): ProjectColorMap {
-  remembered ??= readStored(STORAGE_KEY, (raw) => sanitize(JSON.parse(raw)), {});
-  return remembered;
+interface PickMemory {
+  storageKey: string;
+  /** Last colours seen on this page; outlives a list that bb mounts again. */
+  remembered: ProjectColorMap | null;
 }
 
-function remember(colors: ProjectColorMap): void {
-  remembered = colors;
-  writeStored(STORAGE_KEY, JSON.stringify(colors));
+const PROJECT_MEMORY: PickMemory = { storageKey: "chat-sidebar/project-colors", remembered: null };
+const THREAD_MEMORY: PickMemory = { storageKey: "chat-sidebar/thread-colors", remembered: null };
+
+function recall(memory: PickMemory): ProjectColorMap {
+  memory.remembered ??= readStored(memory.storageKey, (raw) => sanitize(JSON.parse(raw)), {});
+  return memory.remembered;
 }
 
-export function ProjectColorsProvider({
-  projects,
-  children,
-}: {
-  projects: readonly PluginSidebarProject[];
-  children: ReactNode;
-}) {
-  const t = useT();
+function remember(memory: PickMemory, colors: ProjectColorMap): void {
+  memory.remembered = colors;
+  writeStored(memory.storageKey, JSON.stringify(colors));
+}
+
+function usePicks(memory: PickMemory, method: "colors_get" | "thread_colors_get", channel: string) {
   const rpc = useRpc<typeof rpcContract>();
   const rpcRef = useRef(rpc);
   rpcRef.current = rpc;
-  const [picks, setPicksState] = useState<ProjectColorMap>(recall);
+  const [picks, setPicksState] = useState<ProjectColorMap>(() => recall(memory));
   const setPicks = useCallback((next: ProjectColorMap) => {
-    remember(next);
+    remember(memory, next);
     setPicksState(next);
-  }, []);
+  }, [memory]);
 
   // Load on mount, retrying while the backend is unavailable, and again
   // whenever the realtime connection comes back: colours published while it
@@ -106,7 +114,7 @@ export function ProjectColorsProvider({
     let timer: ReturnType<typeof setTimeout> | undefined;
     const attempt = (index: number) => {
       rpcRef.current
-        .call("colors_get", null)
+        .call(method, null)
         .then((colors) => alive && setPicks(sanitize(colors)))
         .catch(() => {
           const delay = RETRIES[index];
@@ -118,15 +126,56 @@ export function ProjectColorsProvider({
       alive = false;
       clearTimeout(timer);
     };
-  }, [generation, setPicks]);
-  useRealtime(COLORS_CHANNEL, (payload) => setPicks(sanitize(payload)));
+  }, [generation, method, setPicks]);
+  useRealtime(channel, (payload) => setPicks(sanitize(payload)));
+
+  return { picks, setPicks, rpcRef };
+}
+
+export function ProjectColorsProvider({
+  projects,
+  threads,
+  children,
+}: {
+  projects: readonly PluginSidebarProject[];
+  threads: readonly PluginSidebarThread[];
+  children: ReactNode;
+}) {
+  const t = useT();
+  const { picks, setPicks, rpcRef } = usePicks(PROJECT_MEMORY, "colors_get", COLORS_CHANNEL);
+  const { picks: threadPicks, setPicks: setThreadPicks } = usePicks(THREAD_MEMORY, "thread_colors_get", THREAD_COLORS_CHANNEL);
+  const threadsById = useMemo(() => new Map(threads.map((thread) => [thread.id, thread])), [threads]);
 
   const projectIds = useMemo(() => projects.map((project) => project.id), [projects]);
   const value = useMemo<ProjectColorsValue>(() => {
     const assigned = assignProjectColors(projectIds, picks);
+    const colorOf = (projectId: string | null, fallbackKey: string) =>
+      (projectId !== null ? assigned.get(projectId) : undefined) ?? colorForKey(projectId ?? fallbackKey);
     return {
-      colorOf: (projectId, fallbackKey) =>
-        (projectId !== null ? assigned.get(projectId) : undefined) ?? colorForKey(projectId ?? fallbackKey),
+      colorOf,
+      threadColorOf: (thread, projectId) => {
+        const root = rootOf(thread, threadsById);
+        const pick = threadPicks[root.id];
+        return pick !== undefined ? colorById(pick) : colorOf(projectId, root.id);
+      },
+      isRootThread: (thread) => rootOf(thread, threadsById).id === thread.id,
+      threadPickOf: (threadId) => threadPicks[threadId] ?? null,
+      setThreadColor: (threadId, color) => {
+        const previous = threadPicks;
+        const next = { ...threadPicks };
+        if (color === null) delete next[threadId];
+        else next[threadId] = color;
+        setThreadPicks(next);
+        rpcRef.current
+          .call("thread_colors_set", { threadId, color })
+          .then((colors) => setThreadPicks(sanitize(colors)))
+          .catch((cause: unknown) => {
+            setThreadPicks(previous);
+            toast.error(t("toast.colorFailed"), {
+              description: cause instanceof Error ? cause.message : String(cause),
+            });
+          });
+      },
       pickOf: (projectId) => picks[projectId] ?? null,
       setColor: (projectId, color) => {
         const previous = picks;
@@ -145,7 +194,7 @@ export function ProjectColorsProvider({
           });
       },
     };
-  }, [projectIds, picks, t]);
+  }, [projectIds, picks, threadPicks, threadsById, setPicks, setThreadPicks, rpcRef, t]);
 
   return <ProjectColorsContext.Provider value={value}>{children}</ProjectColorsContext.Provider>;
 }

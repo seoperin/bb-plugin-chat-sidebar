@@ -14,7 +14,7 @@ import {
   type PluginThreadActionsInlineItem,
 } from "@get-bb/plugin-sdk/app";
 
-import { PALETTE } from "@/lib/colors";
+import { PALETTE, type ColorId } from "@/lib/colors";
 import type { MessageKey } from "@/lib/i18n";
 import type { Chat } from "@/lib/model";
 import { laneOf } from "@/lib/status";
@@ -45,7 +45,7 @@ export function ChatMenu({
   const { settings } = useChat();
   const sdk = useSdk();
   const navigate = useBbNavigate();
-  const { colorOf, pickOf, setColor } = useProjectColors();
+  const { colorOf, pickOf, setColor, threadColorOf, threadPickOf, setThreadColor, isRootThread } = useProjectColors();
   const { openPicker } = useRowActions();
   const chatIcons = useChatIcons();
   const { thread, project } = row;
@@ -96,6 +96,35 @@ export function ChatMenu({
       },
     });
   }
+  const colorChoices = (pick: ColorId | null, autoLabel: string) => ({
+    items: [
+      { id: AUTO_COLOR, label: autoLabel, icon: "Palette", selected: pick === null },
+      ...PALETTE.map((color) => ({
+        id: color.id,
+        label: t(`color.${color.id}` as MessageKey),
+        icon: swatchIcon(color.id),
+        selected: pick === color.id,
+      })),
+    ],
+  });
+  if (isRootThread(thread)) {
+    const pick = threadPickOf(thread.id);
+    inline.push({
+      key: "thread-color",
+      group: GROUPS.settings,
+      action: {
+        label: t("color.threadMenu"),
+        detail: pick === null ? t("color.threadAuto") : t(`color.${pick}` as MessageKey),
+        icon: swatchIcon(threadColorOf(thread, project?.id ?? null).id),
+        choices: colorChoices(pick, t("color.threadAuto")),
+        run: ({ value }) => {
+          if (value === undefined) return;
+          const color = PALETTE.find((candidate) => candidate.id === value);
+          setThreadColor(thread.id, color?.id ?? null);
+        },
+      },
+    });
+  }
   if (project !== null) {
     const pick = pickOf(project.id);
     const current = colorOf(project.id, project.id);
@@ -106,17 +135,7 @@ export function ChatMenu({
         label: t("color.menu"),
         detail: pick === null ? t("color.auto") : t(`color.${pick}` as MessageKey),
         icon: swatchIcon(current.id),
-        choices: {
-          items: [
-            { id: AUTO_COLOR, label: t("color.auto"), icon: "Palette", selected: pick === null },
-            ...PALETTE.map((color) => ({
-              id: color.id,
-              label: t(`color.${color.id}` as MessageKey),
-              icon: swatchIcon(color.id),
-              selected: pick === color.id,
-            })),
-          ],
-        },
+        choices: colorChoices(pick, t("color.auto")),
         run: ({ value }) => {
           if (value === undefined) return;
           const color = PALETTE.find((candidate) => candidate.id === value);

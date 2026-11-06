@@ -15,7 +15,9 @@ import {
   FOLDER_IMAGES_CHANNEL,
   FOLDERS_CHANNEL,
   MAX_PROJECT_COLORS,
+  MAX_THREAD_COLORS,
   ROW_ACTIONS_CHANNEL,
+  THREAD_COLORS_CHANNEL,
   rpcContract,
   type ProjectColorMap,
 } from "./lib/rpc";
@@ -23,6 +25,7 @@ import { sanitizeRowActions } from "./lib/row-actions";
 import { FOLDER_LAYOUT_LABELS, PHONE_LAYOUT_LABELS, SETTINGS } from "./lib/settings";
 
 const COLORS_KEY = "project-colors";
+const THREAD_COLORS_KEY = "thread-colors";
 const ROW_ACTIONS_KEY = "row-actions";
 const CHAT_ICONS_KEY = "chat-icons";
 /** One key per folder: a picture is up to 200KB and a value at most 256KB. */
@@ -31,27 +34,33 @@ const IMAGE_PREFIX = "folder-image:";
 export default function plugin(bb: BbPluginApi) {
   const settings = bb.settings.define(SETTINGS);
 
-  const read = async (): Promise<ProjectColorMap> => {
-    const stored = await bb.storage.kv.get<Record<string, unknown>>(COLORS_KEY);
+  const readColors = async (key: string): Promise<ProjectColorMap> => {
+    const stored = await bb.storage.kv.get<Record<string, unknown>>(key);
     const colors: ProjectColorMap = {};
-    for (const [projectId, color] of Object.entries(stored ?? {})) {
-      if (isColorId(color)) colors[projectId] = color;
+    for (const [id, color] of Object.entries(stored ?? {})) {
+      if (isColorId(color)) colors[id] = color;
     }
     return colors;
   };
 
   // Colour writes run one after another, so two quick picks never lose each other.
   let queue: Promise<unknown> = Promise.resolve();
-  const writeColors = (change: (colors: ProjectColorMap) => void): Promise<ProjectColorMap> => {
+  const pickColor = (
+    store: { key: string; channel: string; max: number },
+    id: string,
+    color: ProjectColorMap[string] | null,
+  ): Promise<ProjectColorMap> => {
     const write = queue.then(async () => {
-      const colors = await read();
-      change(colors);
+      const colors = await readColors(store.key);
+      // A new pick goes last, so the cap drops the oldest ones.
+      delete colors[id];
+      if (color !== null) colors[id] = color;
       const ids = Object.keys(colors);
-      if (ids.length > MAX_PROJECT_COLORS) {
-        for (const id of ids.slice(0, ids.length - MAX_PROJECT_COLORS)) delete colors[id];
+      if (ids.length > store.max) {
+        for (const old of ids.slice(0, ids.length - store.max)) delete colors[old];
       }
-      await bb.storage.kv.set(COLORS_KEY, colors);
-      bb.realtime.publish(COLORS_CHANNEL, colors);
+      await bb.storage.kv.set(store.key, colors);
+      bb.realtime.publish(store.channel, colors);
       return colors;
     });
     queue = write.catch(() => undefined);
@@ -199,11 +208,11 @@ export default function plugin(bb: BbPluginApi) {
     chaticons_set: ({ threadId, icon }) => setIcon(threadId, icon),
     images_get: () => readImages(),
     images_set: ({ folderId, image }) => setImage(folderId, image),
-    colors_get: () => read(),
+    colors_get: () => readColors(COLORS_KEY),
     colors_set: ({ projectId, color }) =>
-      writeColors((colors) => {
-        if (color === null) delete colors[projectId];
-        else colors[projectId] = color;
-      }),
+      pickColor({ key: COLORS_KEY, channel: COLORS_CHANNEL, max: MAX_PROJECT_COLORS }, projectId, color),
+    thread_colors_get: () => readColors(THREAD_COLORS_KEY),
+    thread_colors_set: ({ threadId, color }) =>
+      pickColor({ key: THREAD_COLORS_KEY, channel: THREAD_COLORS_CHANNEL, max: MAX_THREAD_COLORS }, threadId, color),
   });
 }

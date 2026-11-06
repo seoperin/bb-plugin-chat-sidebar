@@ -73,7 +73,7 @@ export interface BuildOptions {
   foldChildren?: boolean;
 }
 
-function rootOf(thread: PluginSidebarThread, byId: ReadonlyMap<string, PluginSidebarThread>): PluginSidebarThread {
+export function rootOf(thread: PluginSidebarThread, byId: ReadonlyMap<string, PluginSidebarThread>): PluginSidebarThread {
   let current = thread;
   const seen = new Set([current.id]);
   for (;;) {

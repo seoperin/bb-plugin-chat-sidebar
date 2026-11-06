@@ -21,10 +21,11 @@ import {
 } from "./folders";
 
 export { CHAT_ICONS_CHANNEL, MAX_CHAT_ICONS };
-export { COLORS_CHANNEL } from "./colors";
+export { COLORS_CHANNEL, THREAD_COLORS_CHANNEL } from "./colors";
 export { FOLDERS_CHANNEL } from "./folders";
 export { FOLDER_IMAGES_CHANNEL } from "./folder-images";
 export const MAX_PROJECT_COLORS = 500;
+export const MAX_THREAD_COLORS = 2000;
 export { MAX_ROW_ACTIONS, ROW_ACTIONS_CHANNEL } from "./row-actions";
 
 /** bb thread action keys, `<owner>/<id>`, in the order the row shows them. */
@@ -83,6 +84,13 @@ export const rpcContract = defineRpcContract({
   colors_get: { input: z.null(), output: colorMap },
   colors_set: {
     input: z.object({ projectId: z.string().min(1).max(200), color: z.enum(COLOR_IDS).nullable() }).strict(),
+    output: colorMap,
+  },
+  /** The colour picked for a thread, by thread id; its sub-threads show it too. */
+  thread_colors_get: { input: z.null(), output: colorMap },
+  /** Null goes back to the project's colour. */
+  thread_colors_set: {
+    input: z.object({ threadId: z.string().min(1).max(200), color: z.enum(COLOR_IDS).nullable() }).strict(),
     output: colorMap,
   },
   /** The icon picked by hand for a chat, by thread id; chats without one get theirs from the title. */

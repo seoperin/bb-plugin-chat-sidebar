@@ -33,6 +33,9 @@ export type ColorId = (typeof PALETTE)[number]["id"];
 /** Realtime channel the backend publishes picked colours on. */
 export const COLORS_CHANNEL = "project-colors";
 
+/** Realtime channel the backend publishes colours picked for threads on. */
+export const THREAD_COLORS_CHANNEL = "thread-colors";
+
 /** Automatic colours, most distinct first. */
 const AUTO_ORDER: readonly ColorId[] = [
   "blue",

@@ -111,6 +111,8 @@ export const ru: Messages = {
   // Colours
   "color.menu": "Цвет проекта",
   "color.auto": "Автоматически",
+  "color.threadMenu": "Цвет треда",
+  "color.threadAuto": "Как у проекта",
   "color.red": "Красный",
   "color.orange": "Оранжевый",
   "color.amber": "Янтарный",

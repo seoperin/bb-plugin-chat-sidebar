@@ -37,7 +37,7 @@ export type ProviderSummary = ReturnType<typeof experimental_useProviders>["prov
 
 function Avatar({ row, size }: { row: Chat; size: "md" | "sm" }) {
   const { avatar } = useChat().settings;
-  const color = useProjectColors().colorOf(row.project?.id ?? null, row.thread.id);
+  const color = useProjectColors().threadColorOf(row.thread, row.project?.id ?? null);
   const { iconOf } = useChatIcons();
   const busy = row.lane === "working" || row.lane === "attention";
   return (
