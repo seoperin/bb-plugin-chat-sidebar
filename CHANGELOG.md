@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Thread colours.** Right-click a chat that is not a sub-agent → **Thread
+  colour** to tell it apart from the other chats of its project. Its sub-agents
+  show the same colour, and moving a sub-agent under another chat takes that
+  chat's colour. **Same as project** goes back. Picks sync across devices.
 - Optional chat icons: set **Chat avatar** to **Icon from the title** and each
   chat's avatar shows an icon picked from words in its title (English and
   Russian rules), or a stable one by a hash of the title. Right-click a chat →

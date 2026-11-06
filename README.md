@@ -58,6 +58,8 @@ view, so nothing about how bb works changes.
   projects never look alike. Right-click a project to pick one of 15. The pick
   syncs across your devices, and a folder about one project wears its
   colour.
+- **Thread colours.** Right-click a chat to give it its own colour within the
+  project. Its sub-agents show the same colour.
 - **New chat in context.** The **+** starts a chat in the open project or
   section. Right-click it to choose any project. While the plugin is enabled,
   opening the new-thread composer or changing its project restores that

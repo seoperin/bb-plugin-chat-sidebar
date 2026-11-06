@@ -364,7 +364,7 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
 
   return (
     <MutedRefreshProvider value={refreshMuted}>
-      <ProjectColorsProvider projects={projectsInUse}>
+      <ProjectColorsProvider projects={projectsInUse} threads={threads}>
         <FolderImagesProvider>
         <div
           className={cn(

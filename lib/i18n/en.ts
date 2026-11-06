@@ -109,6 +109,8 @@ export const en = {
   // Colours
   "color.menu": "Project colour",
   "color.auto": "Automatic",
+  "color.threadMenu": "Thread colour",
+  "color.threadAuto": "Same as project",
   "color.red": "Red",
   "color.orange": "Orange",
   "color.amber": "Amber",
