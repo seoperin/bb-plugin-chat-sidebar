@@ -49,6 +49,11 @@ view, so nothing about how bb works changes.
   Hide, rename, reorder, and give any folder an icon and a colour.
   The folders sync across your devices; the last 20 versions are kept, and
   deleting, resetting and restoring ask first.
+- **Chat icons.** Set **Chat avatar** to **Icon from the title** and every
+  chat's avatar wears an icon picked from words in its title, on its
+  project's colour; titles no rule knows get a stable icon of their own.
+  Right-click a chat → **Chat icon…** to pick another; the pick syncs across
+  your devices. The default stays the project's letter.
 - **Project colours.** Clear colours are assigned automatically, so a few
   projects never look alike. Right-click a project to pick one of 15. The pick
   syncs across your devices, and a folder about one project wears its
@@ -133,6 +138,7 @@ bb plugin config chat-sidebar unset folderLayout        # back to the default
 | `phoneFolderLayout` | `Tabs above the list`, `Same as on wider screens` | `Tabs above the list` |
 | `folderNames` | names under the rail's icons; off leaves an icon-only rail | `true` |
 | `density` | `Comfortable`, `Compact` | `Comfortable` |
+| `avatar` | `Project letter`, `Icon from the title` | `Project letter` |
 | `stickyHeadings` | keep the current project heading under the tabs (`List headers`) | `true` |
 | `sectionFolders` | a folder per bb section | `true` |
 | `archiveFolder` | the Archive folder | `true` |

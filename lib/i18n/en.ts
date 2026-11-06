@@ -129,6 +129,11 @@ export const en = {
 
   // Folder editor
   "folders.title": "Folders",
+  "menu.chatIcon": "Chat icon…",
+  "chatIcon.title": "Chat icon",
+  "chatIcon.auto": "From the title",
+  "chatIcon.autoShort": "Auto",
+  "chatIcon.failed": "Couldn’t save the chat icon",
   "menu.rowActions": "Row buttons…",
   "rowActions.title": "Buttons on a row",
   "rowActions.hint": "Up to {count} actions show at the right of a chat while you point at it.",

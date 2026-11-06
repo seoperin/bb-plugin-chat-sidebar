@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Optional chat icons: set **Chat avatar** to **Icon from the title** and each
+  chat's avatar shows an icon picked from words in its title (English and
+  Russian rules), or a stable one by a hash of the title. Right-click a chat →
+  **Chat icon…** to pick another; picks sync across devices. The default
+  stays **Project letter**.
+- Keep icon updates in revision order, retry failed loads, and save manual
+  picks sequentially without rolling back newer changes after an error.
 - **Phone layout.** Folder-tab counts are centred in their pills (flex,
   `line-height: 1`, tabular digits). The search field, the + button and the
   tabs share one 6px gap and, on phones, one row rhythm: a 40px search and +

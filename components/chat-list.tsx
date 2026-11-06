@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { ArchivedHits } from "./archived-hits";
 import { BackToTop } from "./back-to-top";
 import { ChatProvider, useChat } from "./chat-context";
+import { ChatIconsProvider } from "./chat-icons";
 import { ChatRow, SortableChatRow, type ProviderSummary } from "./chat-row";
 import { FolderEditor } from "./folder-editor";
 import { FolderRail } from "./folder-rail";
@@ -112,7 +113,9 @@ export function ChatList(props: PluginThreadListProps) {
     <ChatProvider>
       <FoldersProvider>
         <RowActionsProvider>
-          <ChatListView {...props} />
+          <ChatIconsProvider>
+            <ChatListView {...props} />
+          </ChatIconsProvider>
         </RowActionsProvider>
       </FoldersProvider>
     </ChatProvider>
