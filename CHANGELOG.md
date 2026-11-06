@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Phone layout.** Folder-tab counts are centred in their pills (flex,
+  `line-height: 1`, tabular digits). The search field, the + button and the
+  tabs share one 6px gap and, on phones, one row rhythm: a 40px search and +
+  button, 32px tabs with a 44px tap target. The search icon and clear button
+  are centred on the field's height.
+- The tab strip's edge fade is wider (2.5rem) so a half-visible tab reads as
+  "more this way", and it also sets `-webkit-mask-image` for older Safari.
+
 ## 0.2.8
 
 - Add a **Last 24 hours** smart folder alongside **Today**. Any custom folder

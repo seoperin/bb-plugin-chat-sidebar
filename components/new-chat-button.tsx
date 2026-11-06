@@ -54,7 +54,7 @@ export function NewChatButton({
           title={title}
           onClick={() => start(startIn ?? {})}
           className={cn(
-            "grid size-7 shrink-0 cursor-pointer place-items-center rounded-full bg-sidebar-accent/70 text-muted-foreground outline-none transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+            "chat-tab-hit chat-tab-hit-tight relative grid size-7 shrink-0 cursor-pointer max-md:pointer-coarse:size-10 place-items-center rounded-full bg-sidebar-accent/70 text-muted-foreground outline-none transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
             className,
           )}
         >

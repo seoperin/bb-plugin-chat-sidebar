@@ -384,8 +384,8 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
           ) : null}
           <div className="flex min-w-0 flex-1 flex-col">
             <div ref={paging.topRef} className="-mb-px h-px" aria-hidden="true" />
-            <div ref={topRef} className="sticky top-0 z-10 bg-sidebar pt-1">
-              <div className="flex items-center gap-1.5 px-2 pb-2">
+            <div ref={topRef} className="sticky top-0 z-10 bg-sidebar pt-1.5">
+              <div className={cn("flex items-center gap-1.5 px-2", rail && "pb-2")}>
                 <SearchBar
                   query={query}
                   onChange={setQuery}

@@ -77,7 +77,7 @@ export function FolderTabs({
       aria-label={t("folder.tabs")}
       data-fade-start={overflow.start || undefined}
       data-fade-end={overflow.end || undefined}
-      className="chat-tab-strip flex gap-1 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="chat-tab-strip flex gap-1.5 overflow-x-auto overscroll-x-contain px-2 pb-2 pt-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <DndContext {...dnd.dndContextProps}>
         <SortableContext
@@ -89,7 +89,7 @@ export function FolderTabs({
               key={block.entryId}
               id={block.entryId}
               fixed={block.entryId === "all"}
-              className="flex shrink-0 gap-1 rounded-full"
+              className="flex shrink-0 gap-1.5 rounded-full"
             >
               {block.folders.map((folder) => {
                 const selected = folder.id === active;
@@ -100,7 +100,7 @@ export function FolderTabs({
                       aria-pressed={selected}
                       onClick={() => onSelect(folder.id)}
                       className={cn(
-                        "relative flex h-6 max-w-40 shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-full px-2.5 text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                        "chat-tab-hit relative flex h-6 max-w-40 shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-full px-2.5 text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring max-md:pointer-coarse:h-8 max-md:pointer-coarse:px-3",
                         selected
                           ? "bg-foreground text-background"
                           : "bg-sidebar-accent/70 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
@@ -122,7 +122,7 @@ export function FolderTabs({
                       {folder.badge > 0 ? (
                         <span
                           className={cn(
-                            "grid h-4 min-w-4 shrink-0 place-items-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
+                            "flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none tabular-nums max-md:pointer-coarse:h-5 max-md:pointer-coarse:min-w-5 max-md:pointer-coarse:text-[11px]",
                             selected ? "bg-background text-foreground" : "bg-muted-foreground/20",
                           )}
                         >
@@ -142,9 +142,9 @@ export function FolderTabs({
         title={t("folders.edit")}
         aria-label={t("folders.edit")}
         onClick={() => openEditor(null)}
-        className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        className="chat-tab-hit chat-tab-hit-square relative grid size-6 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring max-md:pointer-coarse:size-8"
       >
-        <Icon name="SlidersHorizontal" className="size-3.5" />
+        <Icon name="SlidersHorizontal" className="size-3.5 max-md:pointer-coarse:size-4" />
       </button>
     </nav>
   );
