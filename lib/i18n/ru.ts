@@ -131,6 +131,11 @@ export const ru: Messages = {
 
   // Редактор папок
   "folders.title": "Папки",
+  "menu.chatIcon": "Иконка чата…",
+  "chatIcon.title": "Иконка чата",
+  "chatIcon.auto": "По названию",
+  "chatIcon.autoShort": "Авто",
+  "chatIcon.failed": "Не удалось сохранить иконку чата",
   "menu.rowActions": "Кнопки на строке…",
   "rowActions.title": "Кнопки на строке",
   "rowActions.hint": "До {count} действий появляются справа у чата при наведении.",

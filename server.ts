@@ -1,14 +1,16 @@
 // bb-plugin-chat-sidebar — backend. The list lives in the frontend; the
 // backend declares the settings bb shows on the plugin's page and keeps what
-// syncs across devices: the colour picked for each project, the folders, and
-// the quick buttons on a row.
+// syncs across devices: the colour picked for each project, the folders, the
+// icons picked for chats, and the quick buttons on a row.
 import type { BbPluginApi } from "@get-bb/plugin-sdk";
 
+import { MAX_CHAT_ICONS, sanitizeChatIcons, type ChatIconMap } from "./lib/chat-icons";
 import { isColorId } from "./lib/colors";
 import { MAX_FOLDER_IMAGES, isFolderImage, type FolderImageMap } from "./lib/folder-images";
 import { layoutWithSettings, settingsPatchFor, type LegacyFolderSettings } from "./lib/folder-settings";
 import { createFolderStore } from "./lib/folder-store";
 import {
+  CHAT_ICONS_CHANNEL,
   COLORS_CHANNEL,
   FOLDER_IMAGES_CHANNEL,
   FOLDERS_CHANNEL,
@@ -22,6 +24,7 @@ import { FOLDER_LAYOUT_LABELS, PHONE_LAYOUT_LABELS, SETTINGS } from "./lib/setti
 
 const COLORS_KEY = "project-colors";
 const ROW_ACTIONS_KEY = "row-actions";
+const CHAT_ICONS_KEY = "chat-icons";
 /** One key per folder: a picture is up to 200KB and a value at most 256KB. */
 const IMAGE_PREFIX = "folder-image:";
 
@@ -52,6 +55,27 @@ export default function plugin(bb: BbPluginApi) {
       return colors;
     });
     queue = write.catch(() => undefined);
+    return write;
+  };
+
+  // --- chat icons picked by hand
+
+  const readIcons = async (): Promise<ChatIconMap> => sanitizeChatIcons(await bb.storage.kv.get<unknown>(CHAT_ICONS_KEY));
+
+  let iconQueue: Promise<unknown> = Promise.resolve();
+  const setIcon = (threadId: string, icon: string | null): Promise<ChatIconMap> => {
+    const write = iconQueue.then(async () => {
+      const icons = await readIcons();
+      // Re-set picks move to the end, so the oldest are the first to go past the cap.
+      delete icons[threadId];
+      if (icon !== null) icons[threadId] = icon;
+      const ids = Object.keys(icons);
+      for (const id of ids.slice(0, Math.max(0, ids.length - MAX_CHAT_ICONS))) delete icons[id];
+      await bb.storage.kv.set(CHAT_ICONS_KEY, icons);
+      bb.realtime.publish(CHAT_ICONS_CHANNEL, icons);
+      return icons;
+    });
+    iconQueue = write.catch(() => undefined);
     return write;
   };
 
@@ -170,6 +194,8 @@ export default function plugin(bb: BbPluginApi) {
       });
       return null;
     },
+    chaticons_get: () => readIcons(),
+    chaticons_set: ({ threadId, icon }) => setIcon(threadId, icon),
     images_get: () => readImages(),
     images_set: ({ folderId, image }) => setImage(folderId, image),
     colors_get: () => read(),

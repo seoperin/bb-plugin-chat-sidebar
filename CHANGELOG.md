@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Optional chat icons: set **Chat avatar** to **Icon from the title** and each
+  chat's avatar shows an icon picked from words in its title (English and
+  Russian rules), or a stable one by a hash of the title. Right-click a chat →
+  **Chat icon…** to pick another; picks sync across devices. The default
+  stays **Project letter**.
+
 ## 0.2.8
 
 - Add a **Last 24 hours** smart folder alongside **Today**. Any custom folder

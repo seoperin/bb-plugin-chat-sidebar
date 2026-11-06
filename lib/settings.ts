@@ -12,6 +12,7 @@ export const PROJECT_OPTIONS = ["Folders", "List headers", "Off"] as const;
 export const FOLDER_LAYOUT_OPTIONS = ["Tabs above the list", "Rail on the left"] as const;
 export const PHONE_LAYOUT_OPTIONS = ["Tabs above the list", "Same as on wider screens"] as const;
 export const DENSITY_OPTIONS = ["Comfortable", "Compact"] as const;
+export const AVATAR_OPTIONS = ["Project letter", "Icon from the title"] as const;
 
 export const SETTINGS = {
   language: {
@@ -56,6 +57,14 @@ export const SETTINGS = {
     description: "Comfortable shows an avatar and a second line with status and branch.",
     options: [...DENSITY_OPTIONS] as string[],
     default: "Comfortable",
+  },
+  avatar: {
+    type: "select",
+    label: "Chat avatar",
+    description:
+      "Project letter: the project's first letter, or the chat's in the personal project. Icon from the title: an icon picked from words in the chat's title; right-click a chat to pick another.",
+    options: [...AVATAR_OPTIONS] as string[],
+    default: "Project letter",
   },
   stickyHeadings: {
     type: "boolean",
@@ -103,6 +112,7 @@ export type ProjectGrouping = "tabs" | "headers" | "off";
 export type FolderLayout = "tabs" | "rail";
 export type PhoneFolderLayout = "tabs" | "same";
 export type Density = "comfortable" | "compact";
+export type AvatarStyle = "letter" | "icon";
 
 /** The stored option of each layout, for writing them back from the folder editor. */
 export const FOLDER_LAYOUT_LABELS: Record<FolderLayout, (typeof FOLDER_LAYOUT_OPTIONS)[number]> = {
@@ -121,6 +131,7 @@ export interface ChatSettings {
   phoneFolderLayout: PhoneFolderLayout;
   folderNames: boolean;
   density: Density;
+  avatar: AvatarStyle;
   stickyHeadings: boolean;
   sectionFolders: boolean;
   archiveFolder: boolean;
@@ -161,6 +172,7 @@ export function parseSettings(values: Readonly<Record<string, unknown>> | undefi
     ),
     folderNames: bool(source.folderNames, SETTINGS.folderNames.default),
     density: pick<Density>(source.density, { Comfortable: "comfortable", Compact: "compact" }, "comfortable"),
+    avatar: pick<AvatarStyle>(source.avatar, { "Project letter": "letter", "Icon from the title": "icon" }, "letter"),
     stickyHeadings: bool(source.stickyHeadings, SETTINGS.stickyHeadings.default),
     sectionFolders: bool(source.sectionFolders, SETTINGS.sectionFolders.default),
     archiveFolder: bool(source.archiveFolder, SETTINGS.archiveFolder.default),

@@ -6,6 +6,7 @@
 import { defineRpcContract } from "@get-bb/plugin-sdk";
 import { z } from "zod";
 
+import { CHAT_ICONS_CHANNEL, MAX_CHAT_ICONS, isChatIcon } from "./chat-icons";
 import { COLOR_IDS } from "./colors";
 import { isFolderImage } from "./folder-images";
 import { MAX_ROW_ACTIONS } from "./row-actions";
@@ -19,6 +20,7 @@ import {
   type FolderLayout,
 } from "./folders";
 
+export { CHAT_ICONS_CHANNEL, MAX_CHAT_ICONS };
 export { COLORS_CHANNEL } from "./colors";
 export { FOLDERS_CHANNEL } from "./folders";
 export { FOLDER_IMAGES_CHANNEL } from "./folder-images";
@@ -29,6 +31,9 @@ export { MAX_ROW_ACTIONS, ROW_ACTIONS_CHANNEL } from "./row-actions";
 const rowActions = z.array(z.string().min(3).max(200)).max(MAX_ROW_ACTIONS);
 
 const colorMap = z.record(z.string().min(1).max(200), z.enum(COLOR_IDS));
+
+const chatIcon = z.string().max(60).refine(isChatIcon, "not a known icon");
+const chatIconMap = z.record(z.string().min(1).max(200), chatIcon);
 
 const folderImage = z.string().refine(isFolderImage, "not a small PNG, WebP or JPEG data URL");
 const imageMap = z.record(z.string().min(1).max(250), folderImage);
@@ -78,6 +83,13 @@ export const rpcContract = defineRpcContract({
   colors_set: {
     input: z.object({ projectId: z.string().min(1).max(200), color: z.enum(COLOR_IDS).nullable() }).strict(),
     output: colorMap,
+  },
+  /** The icon picked by hand for a chat, by thread id; chats without one get theirs from the title. */
+  chaticons_get: { input: z.null(), output: chatIconMap },
+  /** Null goes back to the icon from the title. */
+  chaticons_set: {
+    input: z.object({ threadId: z.string().min(1).max(200), icon: chatIcon.nullable() }).strict(),
+    output: chatIconMap,
   },
   /** A null layout: not arranged yet, so the list derives the folders from the settings. */
   folders_get: { input: z.null(), output: folderState },

@@ -1,8 +1,8 @@
 // A chat row's context menu: bb's own thread menu, so it holds what bb's row
 // menu does (split, copy link, read, pin, rename, archive, delete) and what
 // other plugins add (per-thread notifications, moving to a section, …), plus
-// this list's items for the row: folded sub-agents, the project's colour, a
-// new chat in the project, and reading a whole folded row. bb confirms
+// this list's items for the row: folded sub-agents, the project's colour, the
+// chat's icon, a new chat in the project, and reading a whole folded row. bb confirms
 // deletion, and archiving a thread that has children, itself.
 import type { ReactNode } from "react";
 import { toast } from "sonner";
@@ -18,7 +18,8 @@ import { PALETTE } from "@/lib/colors";
 import type { MessageKey } from "@/lib/i18n";
 import type { Chat } from "@/lib/model";
 import { laneOf } from "@/lib/status";
-import { useT } from "./chat-context";
+import { useChat, useT } from "./chat-context";
+import { useChatIcons } from "./chat-icons";
 import { useProjectColors } from "./project-colors";
 import { useRowActions } from "./row-actions";
 import { laneIcon, swatchIcon, toActionTarget } from "./thread-actions";
@@ -41,10 +42,12 @@ export function ChatMenu({
   onRename: () => void;
 }) {
   const t = useT();
+  const { settings } = useChat();
   const sdk = useSdk();
   const navigate = useBbNavigate();
   const { colorOf, pickOf, setColor } = useProjectColors();
   const { openPicker } = useRowActions();
+  const chatIcons = useChatIcons();
   const { thread, project } = row;
 
   const inline: PluginThreadActionsInlineItem[] = [];
@@ -119,6 +122,19 @@ export function ChatMenu({
           const color = PALETTE.find((candidate) => candidate.id === value);
           setColor(project.id, color?.id ?? null);
         },
+      },
+    });
+  }
+
+  if (settings.avatar === "icon") {
+    inline.push({
+      key: "chat-icon",
+      group: GROUPS.settings,
+      action: {
+        label: t("menu.chatIcon"),
+        detail: chatIcons.pickOf(thread.id) === null ? t("chatIcon.autoShort") : undefined,
+        icon: chatIcons.iconOf(thread.id, thread.displayTitle),
+        run: () => chatIcons.openPicker({ id: thread.id, title: thread.displayTitle }),
       },
     });
   }

@@ -6,6 +6,7 @@ Chat Sidebar replaces bb's sidebar thread list with a chat list. The rest of bb'
 - **Live status.** See whether a chat needs you, is working (a turn, workflow, background agents, goal or environment), finished unread, or has a draft. Other plugins' row statuses show too.
 - **Folders.** All, Attention (waiting, working or unread), projects in order of use, bb sections, and Archive. Each has unread counts and a status dot. Right-click to mark all read or start a chat. Drag to reorder; on touch, hold first. Folder pictures are experimental.
 - **Your own folders.** Filter by status, project, section, agent, title or branch, waiting time or recent activity; include or exclude chats by hand. Start with "Today" (since local midnight), "Last 24 hours" (a rolling window with adjustable hours), or other templates. Hide, rename, reorder, and pick an icon and colour. Folders sync across devices, retain 20 versions, and ask before deleting, resetting or restoring.
+- **Chat icons.** Optional: avatars show an icon chosen from the chat's title instead of the project's letter; right-click a chat → Chat icon… to pick another. Picks sync across devices.
 - **Project colours.** Distinct colours on chat avatars and project folders. Right-click a project tab, heading or chat to pick one of 15; choices sync across devices.
 - **New chat where you are.** The + starts a chat in the open project or section; right-click to choose a project. With the plugin enabled, bb's new-thread composer restores the project's saved provider, model and reasoning on opening and project changes. Manual picks after that are kept. The plugin does not set permissions or environment.
 - **Search.** Find chats by title, project, branch, sub-agent or conversation text, with matching words shown under the title. Archived matches appear below. Enter opens the first match; arrows move through the list.
@@ -18,6 +19,7 @@ Chat Sidebar replaces bb's sidebar thread list with a chat list. The rest of bb'
 
 - **Projects:** folders, headings in the list (they can stay pinned under the tabs while you scroll), or off.
 - **Folder layout:** tabs or a separately scrolling rail. Hide names for larger icons. Phones default to tabs, with a separate setting to follow the desktop layout.
+- **Chat avatar:** the project's letter (default) or an icon from the chat's title.
 - **Row size:** comfortable (avatar plus a status line) or compact (one line).
 - **Section folders** and the **Archive folder**: on or off, in step with the folder editor.
 - **Fold sub-agents** into their parent: on or off.

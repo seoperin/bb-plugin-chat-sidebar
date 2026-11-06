@@ -11,6 +11,7 @@ import { avatarBackground } from "@/lib/colors";
 import { initialOf } from "@/lib/model";
 import { formatChatTime } from "@/lib/time";
 import { useChat } from "./chat-context";
+import { useChatIcons } from "./chat-icons";
 import { Snippet } from "./chat-row";
 import { useProjectColors } from "./project-colors";
 
@@ -27,9 +28,10 @@ export function ArchivedHits({
   now: number;
   onOpen: (threadId: string, split: boolean) => void;
 }) {
-  const { i18n } = useChat();
+  const { i18n, settings } = useChat();
   const { t } = i18n;
   const { colorOf } = useProjectColors();
+  const { iconOf } = useChatIcons();
   const [all, setAll] = useState(false);
   if (hits.length === 0) return null;
   const shown = all ? hits : hits.slice(0, FIRST);
@@ -65,7 +67,11 @@ export function ArchivedHits({
                   className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white opacity-80"
                   style={{ background: avatarBackground(colorOf(hit.projectId, hit.projectId)) }}
                 >
-                  {initialOf(project ?? hit.title)}
+                  {settings.avatar === "icon" ? (
+                    <Icon name={iconOf(hit.id, hit.title)} className="size-3.5" />
+                  ) : (
+                    initialOf(project ?? hit.title)
+                  )}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
