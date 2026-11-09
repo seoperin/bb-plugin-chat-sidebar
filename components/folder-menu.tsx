@@ -14,7 +14,7 @@ import {
 import { Icon } from "@/components/ui/icon";
 import type { EntryKind } from "@/lib/folders";
 import type { MessageKey } from "@/lib/i18n";
-import { composeTarget, unreadIdsIn, type Chat, type Folder } from "@/lib/model";
+import { composeTarget, hostsInOrder, moveHost, unreadIdsIn, type Chat, type Folder } from "@/lib/model";
 import { useT } from "./chat-context";
 import { useFolderImages } from "./folder-images";
 import { useFolders } from "./folders-context";
@@ -25,6 +25,7 @@ const BUILT_IN: Partial<Record<EntryKind, MessageKey>> = {
   attention: "folder.attention",
   archive: "folder.archive",
   projects: "folders.kind.projects",
+  machines: "folders.kind.machines",
   sections: "folders.kind.sections",
   custom: "folders.new",
 };
@@ -64,11 +65,18 @@ export function FolderMenu({ folder, rows, children }: { folder: Folder; rows: r
   const t = useT();
   const markRead = useMarkFolderRead(rows);
   const navigate = useBbNavigate();
-  const { openEditor } = useFolders();
+  const { openEditor, layout, setHostOrder } = useFolders();
   const { imageOf, pickImage, removeImage } = useFolderImages();
   const label = useFolderLabel();
   const unread = unreadIdsIn(rows, folder).length;
   const projectId = folder.id.startsWith("project:") ? folder.id.slice("project:".length) : null;
+  const hostId = folder.id.startsWith("host:") ? folder.id.slice("host:".length) : null;
+  const moveMachine = (id: string, step: -1 | 1) => {
+    const hostOrder = layout.hostOrder ?? [];
+    const shown = hostsInOrder(rows, hostOrder).map((host) => host.id);
+    const next = moveHost(hostOrder, shown, id, step);
+    if (next !== null) setHostOrder(next);
+  };
   // A custom folder about one project (or section) starts its chats there, like "+".
   const startIn = folder.kind === "custom" ? folder.startIn : null;
   return (
@@ -103,6 +111,18 @@ export function FolderMenu({ folder, rows, children }: { folder: Folder; rows: r
             <Icon name="MessageSquarePlus" />
             {t("folder.newChatSection")}
           </ContextMenuItem>
+        ) : null}
+        {hostId !== null ? (
+          <>
+            <ContextMenuItem onSelect={() => moveMachine(hostId, -1)}>
+              <Icon name="ChevronDown" className="rotate-180" />
+              {t("folders.moveUp", { name: label(folder) })}
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => moveMachine(hostId, 1)}>
+              <Icon name="ChevronDown" />
+              {t("folders.moveDown", { name: label(folder) })}
+            </ContextMenuItem>
+          </>
         ) : null}
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={() => pickImage(folder.id, label(folder))}>

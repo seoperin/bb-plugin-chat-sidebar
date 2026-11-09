@@ -37,6 +37,6 @@ export function sanitizeFolderImages(value: unknown): FolderImageMap {
 
 /** The folder a layout entry stands for; null for the per-project and per-section generators. */
 export function entryFolderId(entry: { id: string; kind: string }): string | null {
-  if (entry.kind === "projects" || entry.kind === "sections") return null;
+  if (entry.kind === "projects" || entry.kind === "machines" || entry.kind === "sections") return null;
   return entry.kind === "custom" ? `custom:${entry.id}` : entry.id;
 }

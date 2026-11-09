@@ -7,6 +7,7 @@ describe("parseSettings", () => {
     expect(parseSettings(undefined)).toEqual({
       language: "auto",
       projects: "tabs",
+      machineHeaders: false,
       folderLayout: "tabs",
       phoneFolderLayout: "tabs",
       folderNames: true,

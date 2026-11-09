@@ -1,10 +1,14 @@
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { describe, expect, it } from "vitest";
 
 import {
   buildChats,
   buildFolders,
   childTree,
+  groupByHost,
   groupByProject,
+  hostsInOrder,
+  moveHost,
   isQuiet,
   matchesQuery,
   matchesRule,
@@ -152,6 +156,7 @@ describe("folder layout", () => {
       ["all", false],
       ["attention", false],
       ["projects", false],
+      ["machines", true],
       ["sections", false],
       ["archive", false],
     ]);
@@ -168,6 +173,7 @@ describe("folder layout", () => {
       mine.id,
       "projects",
       "attention",
+      "machines",
       "sections",
       "archive",
     ]);
@@ -275,6 +281,30 @@ describe("groupByProject", () => {
   });
 });
 
+describe("groupByHost", () => {
+  it("puts pins first, then machines by use, then chats with no known machine", () => {
+    const laptop = { id: "host_laptop", name: "Laptop" } as NonNullable<PluginSidebarThread["host"]>;
+    const pod = { id: "host_pod", name: "DevPod" } as NonNullable<PluginSidebarThread["host"]>;
+    const rows = buildChats(
+      [
+        thread("pin", { isPinned: true, host: pod }),
+        thread("l1", { host: laptop, updatedAt: NOW - 3_000 }),
+        thread("p1", { host: pod, updatedAt: NOW }),
+        thread("l2", { host: laptop, updatedAt: NOW - 1_000 }),
+        thread("none", { host: null, updatedAt: NOW - 2_000 }),
+      ],
+      projects,
+    );
+    const groups = groupByHost(rows);
+    expect(groups.map((group) => [group.key, group.host?.name ?? null, ids(group.chats)])).toEqual([
+      ["pinned", null, ["pin"]],
+      ["host:host_pod", "DevPod", ["p1"]],
+      ["host:host_laptop", "Laptop", ["l2", "l1"]],
+      ["host:", null, ["none"]],
+    ]);
+  });
+});
+
 describe("pinNeighbors", () => {
   it("returns the neighbours bb needs and the expected order", () => {
     expect(pinNeighbors(["a", "b", "c"], "c", "a", "before")).toEqual({
@@ -352,5 +382,73 @@ describe("childTree", () => {
   it("hangs a child whose parent is not in the row off the root", () => {
     const [row] = buildChats([thread("lead"), thread("x", { lifecycleOwnerThreadId: "lead" })], []);
     expect(childTree(row!).map((node) => node.depth)).toEqual([1]);
+  });
+});
+
+describe("machines", () => {
+  const laptop = { id: "host_laptop", name: "Laptop" } as NonNullable<PluginSidebarThread["host"]>;
+  const pod = { id: "host_pod", name: "DevPod" } as NonNullable<PluginSidebarThread["host"]>;
+  const rows = buildChats(
+    [
+      thread("l1", { host: laptop, updatedAt: NOW - 1_000 }),
+      thread("p1", { host: pod, updatedAt: NOW }),
+      thread("none", { host: null, updatedAt: NOW - 2_000 }),
+    ],
+    projects,
+  );
+
+  it("orders machines by the saved order first, then by latest activity", () => {
+    expect(hostsInOrder(rows).map((host) => host.id)).toEqual(["host_pod", "host_laptop"]);
+    expect(hostsInOrder(rows, ["host_laptop"]).map((host) => host.id)).toEqual(["host_laptop", "host_pod"]);
+    expect(groupByHost(rows, ["host_laptop"]).map((group) => group.key)).toEqual([
+      "host:host_laptop",
+      "host:host_pod",
+      "host:",
+    ]);
+  });
+
+  it("moves a machine a step and keeps saved machines that are not shown", () => {
+    expect(moveHost(["host_gone"], ["host_pod", "host_laptop"], "host_laptop", -1)).toEqual([
+      "host_laptop",
+      "host_pod",
+      "host_gone",
+    ]);
+    expect(moveHost([], ["host_pod", "host_laptop"], "host_pod", -1)).toBeNull();
+    expect(moveHost([], ["host_pod", "host_laptop"], "host_laptop", 1)).toBeNull();
+  });
+
+  it("filters custom folders by machine, and leaves out excluded machines", () => {
+    const pick = (rule: Partial<ReturnType<typeof emptyRule>>) =>
+      ids(rows.filter((row) => matchesRule(row, { ...emptyRule(), ...rule }, NOW)));
+    expect(pick({ hosts: ["host_pod"] })).toEqual(["p1"]);
+    expect(pick({ hosts: ["host_pod", "host_laptop"] })).toEqual(["p1", "l1"]);
+    expect(pick({ projects: ["proj_a"], excludeHosts: ["host_pod"] })).toEqual(["l1", "none"]);
+    // A rule saved before machines existed has no machine fields.
+    const { hosts: _hosts, excludeHosts: _excludeHosts, ...oldRule } = emptyRule();
+    expect(ids(rows.filter((row) => matchesRule(row, { ...oldRule, projects: ["proj_a"] }, NOW)))).toEqual([
+      "p1",
+      "l1",
+      "none",
+    ]);
+  });
+
+  it("expands the Machines entry into a folder per machine in the saved order", () => {
+    const layout = normalizeLayout({
+      version: 1,
+      entries: [{ id: "machines", kind: "machines", name: null, icon: null, color: null, hidden: false, rule: null }],
+      hostOrder: ["host_laptop", "host_laptop"],
+    });
+    expect(layout.hostOrder).toEqual(["host_laptop"]);
+    const folders = buildFolders(rows, projects, [], layout, NOW).filter((folder) => folder.kind === "machines");
+    expect(folders.map((folder) => [folder.id, folder.name, ids(rows.filter(folder.matches))])).toEqual([
+      ["host:host_laptop", "Laptop", ["l1"]],
+      ["host:host_pod", "DevPod", ["p1"]],
+    ]);
+  });
+
+  it("adds a hidden Machines entry to layouts saved before it existed", () => {
+    const entries = defaultLayout({ projects: "tabs", sectionFolders: true, archiveFolder: true }).entries;
+    const old = normalizeLayout({ version: 1, entries: entries.filter((entry) => entry.kind !== "machines") });
+    expect(old.entries.find((entry) => entry.kind === "machines")?.hidden).toBe(true);
   });
 });

@@ -15,6 +15,7 @@ import {
   FOLDER_STATUSES,
   MAX_ACTIVITY_HOURS,
   MAX_CUSTOM_FOLDERS,
+  MAX_HOSTS,
   MAX_NAME,
   MAX_RULE_ITEMS,
   type FolderLayout,
@@ -57,6 +58,8 @@ const ruleSchema = z
     chats: ids,
     excludeRead: z.boolean(),
     excludeProjects: ids,
+    hosts: ids.optional(),
+    excludeHosts: ids.optional(),
     excludeChats: ids,
   })
   .strict();
@@ -64,7 +67,7 @@ const ruleSchema = z
 const entrySchema = z
   .object({
     id: z.string().regex(/^[a-z0-9]{1,40}$/),
-    kind: z.enum(["all", "attention", "archive", "projects", "sections", "custom"]),
+    kind: z.enum(["all", "attention", "archive", "projects", "machines", "sections", "custom"]),
     name: z.string().max(MAX_NAME).nullable(),
     icon: z.string().max(60).nullable(),
     color: z.enum(COLOR_IDS).nullable(),
@@ -74,7 +77,11 @@ const entrySchema = z
   .strict();
 
 const layoutSchema = z
-  .object({ version: z.literal(1), entries: z.array(entrySchema).max(MAX_CUSTOM_FOLDERS + 5) })
+  .object({
+    version: z.literal(1),
+    entries: z.array(entrySchema).max(MAX_CUSTOM_FOLDERS + 6),
+    hostOrder: z.array(z.string().min(1).max(200)).max(MAX_HOSTS).optional(),
+  })
   .strict() satisfies z.ZodType<FolderLayout>;
 
 const folderState = z.object({ layout: layoutSchema.nullable(), revision: z.number().int().min(0) }).strict();

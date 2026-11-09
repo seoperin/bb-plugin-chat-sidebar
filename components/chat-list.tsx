@@ -34,6 +34,8 @@ import { useReorderDnd } from "@/hooks/use-sortable";
 import {
   buildChats,
   buildFolders,
+  groupByHost,
+  moveHost,
   groupByProject,
   isQuiet,
   matchesQuery,
@@ -125,7 +127,7 @@ export function ChatList(props: PluginThreadListProps) {
 function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginThreadListProps) {
   const { settings, i18n } = useChat();
   const { t } = i18n;
-  const { layout, setLayout, updateEntry, openEditor } = useFolders();
+  const { layout, setLayout, setHostOrder, updateEntry, openEditor } = useFolders();
   const folderLabel = useFolderLabel();
   const [folder, setFolderState] = useState<FolderId>(() =>
     readStored<FolderId>(FOLDER_KEY, (raw) => raw as FolderId, "all"),
@@ -270,10 +272,23 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
     () => new Map<string, ProviderSummary>(providers.map((provider) => [provider.id, provider])),
     [providers],
   );
-  const grouped = settings.projects === "headers" && !archiveMode && needle === "";
-  const showProject = !activeFolder.startsWith("project:") && !grouped;
-  const showHost = (hosts?.length ?? 0) > 1;
+  const listing = !archiveMode && needle === "";
+  const groupedByHost = settings.machineHeaders && listing;
+  const grouped = groupedByHost || (settings.projects === "headers" && listing);
+  const showProject = !activeFolder.startsWith("project:") && (!grouped || groupedByHost);
+  const showHost = (hosts?.length ?? 0) > 1 && !groupedByHost && !activeFolder.startsWith("host:");
   const pinDragAllowed = !archiveMode && needle === "";
+  const hostOrder = layout.hostOrder ?? [];
+  const listGroups = grouped
+    ? groupedByHost
+      ? groupByHost(visible, hostOrder)
+      : groupByProject(visible, projects)
+    : [];
+  const moveHostHeading = (hostId: string, step: -1 | 1) => {
+    const shownHosts = listGroups.flatMap((group) => (group.host ? [group.host.id] : []));
+    const next = moveHost(hostOrder, shownHosts, hostId, step);
+    if (next !== null) setHostOrder(next);
+  };
 
   const pinnedIds = useMemo(
     () => (pinDragAllowed ? visible.filter((chat) => chat.thread.isPinned).map((chat) => chat.thread.id) : []),
@@ -432,10 +447,11 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
                   ) : shown.length === 0 ? (
                     note(emptyText)
                   ) : grouped ? (
-                    groupByProject(visible, projects).map((group) => (
+                    listGroups.map((group) => (
                       <section key={group.key} className="mb-1">
                         <GroupHeader
                           group={group}
+                          onMoveHost={groupedByHost ? moveHostHeading : undefined}
                           collapsed={collapsed.has(group.key)}
                           sticky={settings.stickyHeadings}
                           onToggle={() => toggleGroup(group.key)}

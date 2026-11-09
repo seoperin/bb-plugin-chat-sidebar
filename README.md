@@ -134,6 +134,7 @@ bb plugin config chat-sidebar unset folderLayout        # back to the default
 | --- | --- | --- |
 | `language` | `Auto`, `English`, `Русский` | `Auto` |
 | `projects` | `Folders`, `List headers`, `Off` | `Folders` |
+| `machineHeaders` | group the list under a heading per machine | `false` |
 | `folderLayout` | `Tabs above the list`, `Rail on the left` | `Tabs above the list` |
 | `phoneFolderLayout` | `Tabs above the list`, `Same as on wider screens` | `Tabs above the list` |
 | `folderNames` | names under the rail's icons; off leaves an icon-only rail | `true` |

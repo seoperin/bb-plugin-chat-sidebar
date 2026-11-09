@@ -1,10 +1,10 @@
 // The folder strip as the user arranges it.
 //
 // One ordered list of entries. "All" is always first. Attention and Archive
-// are fixed folders, Projects and Sections each expand into a folder per
-// project or section, and custom folders hold a rule. Every entry but All can
-// be hidden and moved; every one but Projects and Sections, which take their
-// names from bb, can be renamed. A custom folder about one project wears that
+// are fixed folders; Projects, Machines and Sections each expand into a
+// folder per project, machine or section; custom folders hold a rule. Every
+// entry but All can be hidden and moved; every one but Projects, Machines and
+// Sections, which take their names from bb, can be renamed. A custom folder about one project wears that
 // project's colour (see `linkedProjectId`).
 //
 // A custom folder works like Telegram's: chats added by hand are always in,
@@ -41,11 +41,14 @@ export interface FolderRule {
   chats: string[];
   excludeRead: boolean;
   excludeProjects: string[];
+  /** Machine ids (`thread.host.id`); optional so layouts saved before machines still load. */
+  hosts?: string[];
+  excludeHosts?: string[];
   /** Never in. */
   excludeChats: string[];
 }
 
-export type EntryKind = "all" | "attention" | "archive" | "projects" | "sections" | "custom";
+export type EntryKind = "all" | "attention" | "archive" | "projects" | "machines" | "sections" | "custom";
 
 export interface FolderEntry {
   /** The kind for built-ins, a generated id for custom folders. */
@@ -65,6 +68,8 @@ export interface FolderEntry {
 export interface FolderLayout {
   version: 1;
   entries: FolderEntry[];
+  /** Machine ids in the user's order; machines not listed follow by latest activity. */
+  hostOrder?: string[];
 }
 
 /** Realtime channel the backend publishes the saved folder layout on. */
@@ -73,6 +78,7 @@ export const FOLDERS_CHANNEL = "folders";
 export const MAX_CUSTOM_FOLDERS = 40;
 export const MAX_RULE_ITEMS = 500;
 export const MAX_NAME = 40;
+export const MAX_HOSTS = 200;
 
 /** The default icon of each kind. Project folders draw the project's avatar instead. */
 export const DEFAULT_ICONS: Record<EntryKind, string> = {
@@ -80,11 +86,19 @@ export const DEFAULT_ICONS: Record<EntryKind, string> = {
   attention: "BellDot",
   archive: "Archive",
   projects: "Folder",
+  machines: "Folder",
   sections: "Folder",
   custom: "Folder",
 };
 
-const BUILT_IN_ORDER: readonly Exclude<EntryKind, "custom">[] = ["all", "attention", "projects", "sections", "archive"];
+const BUILT_IN_ORDER: readonly Exclude<EntryKind, "custom">[] = [
+  "all",
+  "attention",
+  "projects",
+  "machines",
+  "sections",
+  "archive",
+];
 
 export function emptyRule(): FolderRule {
   return {
@@ -98,6 +112,8 @@ export function emptyRule(): FolderRule {
     chats: [],
     excludeRead: false,
     excludeProjects: [],
+    hosts: [],
+    excludeHosts: [],
     excludeChats: [],
   };
 }
@@ -116,6 +132,7 @@ export function defaultLayout(
       builtIn("all", false),
       builtIn("attention", false),
       builtIn("projects", settings.projects !== "tabs"),
+      builtIn("machines", true),
       builtIn("sections", !settings.sectionFolders),
       builtIn("archive", !settings.archiveFolder),
     ],
@@ -144,7 +161,12 @@ export function normalizeLayout(layout: FolderLayout): FolderLayout {
   }
   const all = entries.find((entry) => entry.kind === "all");
   const rest = entries.filter((entry) => entry.kind !== "all");
-  return { version: 1, entries: all === undefined ? rest : [{ ...all, hidden: false }, ...rest] };
+  const hostOrder = [...new Set(layout.hostOrder ?? [])].slice(0, MAX_HOSTS);
+  return {
+    version: 1,
+    entries: all === undefined ? rest : [{ ...all, hidden: false }, ...rest],
+    ...(hostOrder.length > 0 ? { hostOrder } : {}),
+  };
 }
 
 function newFolderId(): string {
@@ -209,6 +231,7 @@ export function hasFilters(rule: FolderRule): boolean {
   return (
     rule.statuses.length > 0 ||
     rule.projects.length > 0 ||
+    (rule.hosts?.length ?? 0) > 0 ||
     rule.sections.length > 0 ||
     rule.providers.length > 0 ||
     rule.text.trim() !== "" ||

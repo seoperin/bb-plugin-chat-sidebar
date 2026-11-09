@@ -1,7 +1,8 @@
-// A project heading in "List headers" mode: click to collapse, right-click
+// A project heading in "List headers" mode, or a machine heading with
+// "Group by machine" (right-click to move the machine up or down): click to collapse, right-click
 // to colour the project. Collapsed headings keep the unread count and the
 // most urgent status visible.
-import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Icon } from "@/components/ui/icon";
 import { mostUrgentLane, type ProjectGroup } from "@/lib/model";
 import { cn } from "@/lib/utils";
@@ -13,18 +14,23 @@ export function GroupHeader({
   collapsed,
   sticky,
   onToggle,
+  onMoveHost,
 }: {
   group: ProjectGroup;
   collapsed: boolean;
   /** Stays under the search and tabs while its group scrolls past. */
   sticky: boolean;
   onToggle: () => void;
+  /** Machine headings: move this machine a step in the saved order. */
+  onMoveHost?: (hostId: string, step: -1 | 1) => void;
 }) {
   const t = useT();
   const name =
     group.key === "pinned"
       ? t("folder.pinned")
-      : group.project === null
+      : group.host !== undefined
+        ? (group.host?.name ?? t("folder.unknownMachine"))
+        : group.project === null
         ? t("folder.other")
         : group.project.isPersonal
           ? t("folder.personal")
@@ -54,6 +60,22 @@ export function GroupHeader({
       ) : null}
     </button>
   );
+  const host = group.host;
+  if (host && onMoveHost !== undefined) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger asChild>{header}</ContextMenuTrigger>
+        <ContextMenuContent className="min-w-52">
+          <ContextMenuItem onSelect={() => onMoveHost(host.id, -1)}>
+            {t("folders.moveUp", { name: host.name })}
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => onMoveHost(host.id, 1)}>
+            {t("folders.moveDown", { name: host.name })}
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
   if (group.project === null) return header;
   return (
     <ContextMenu>

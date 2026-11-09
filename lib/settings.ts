@@ -30,6 +30,13 @@ export const SETTINGS = {
     options: [...PROJECT_OPTIONS] as string[],
     default: "Folders",
   },
+  machineHeaders: {
+    type: "boolean",
+    label: "Group by machine",
+    description:
+      "The list grouped under a heading per machine, for chats spread across hosts. Takes the place of project list headers while on.",
+    default: false,
+  },
   folderLayout: {
     type: "select",
     label: "Folder layout",
@@ -127,6 +134,7 @@ export const PHONE_LAYOUT_LABELS: Record<PhoneFolderLayout, (typeof PHONE_LAYOUT
 export interface ChatSettings {
   language: Language;
   projects: ProjectGrouping;
+  machineHeaders: boolean;
   folderLayout: FolderLayout;
   phoneFolderLayout: PhoneFolderLayout;
   folderNames: boolean;
@@ -160,6 +168,7 @@ export function parseSettings(values: Readonly<Record<string, unknown>> | undefi
       { Folders: "tabs", "Folder tabs": "tabs", "List headers": "headers", Off: "off" },
       "tabs",
     ),
+    machineHeaders: bool(source.machineHeaders, SETTINGS.machineHeaders.default),
     folderLayout: pick<FolderLayout>(
       source.folderLayout,
       { "Tabs above the list": "tabs", "Rail on the left": "rail" },
