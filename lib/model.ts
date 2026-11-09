@@ -395,10 +395,14 @@ export function folderBlocks(folders: readonly Folder[]): { entryId: string; fol
   return blocks;
 }
 
+export type SidebarHost = NonNullable<PluginSidebarThread["host"]>;
+
 export interface ProjectGroup {
   /** `pinned` for the pinned block, otherwise the project id (`""` when unknown). */
   key: string;
   project: PluginSidebarProject | null;
+  /** Set when the list is grouped by machine instead of by project. */
+  host?: SidebarHost | null;
   chats: Chat[];
 }
 
@@ -485,4 +489,32 @@ export function initialOf(name: string): string {
 /** A row's avatar letter: the project's, or the chat's own in the personal project. */
 export function avatarLetter(row: Chat): string {
   return initialOf(row.project && !row.project.isPersonal ? row.project.name : row.thread.displayTitle);
+}
+
+/**
+ * "Group by machine": pinned chats first as their own block, then one group
+ * per machine in order of use. Chats with no known machine land in one
+ * trailing group. Rows keep their order inside a group.
+ */
+export function groupByHost(rows: readonly Chat[]): ProjectGroup[] {
+  const pinned = rows.filter((row) => row.thread.isPinned);
+  const groups: ProjectGroup[] = [];
+  if (pinned.length > 0) groups.push({ key: "pinned", project: null, chats: pinned });
+  const byHost = new Map<string, ProjectGroup>();
+  const unknown: Chat[] = [];
+  for (const row of rows) {
+    if (row.thread.isPinned) continue;
+    const { host } = row.thread;
+    if (host === null || host === undefined) {
+      unknown.push(row);
+      continue;
+    }
+    const key = `host:${host.id}`;
+    const group = byHost.get(key);
+    if (group === undefined) byHost.set(key, { key, project: null, host, chats: [row] });
+    else group.chats.push(row);
+  }
+  groups.push(...byHost.values());
+  if (unknown.length > 0) groups.push({ key: "host:", project: null, host: null, chats: unknown });
+  return groups;
 }

@@ -7,6 +7,7 @@ export const ru: Messages = {
   "folder.personal": "Личное",
   "folder.pinned": "Закреплённые",
   "folder.other": "Другое",
+  "folder.unknownMachine": "Неизвестная машина",
   "folder.tabs": "Папки",
   "folder.hasWaiting": "Кто-то ждёт тебя",
   "folder.hasWorking": "Что-то работает",

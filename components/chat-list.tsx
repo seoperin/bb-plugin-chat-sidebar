@@ -34,6 +34,7 @@ import { useReorderDnd } from "@/hooks/use-sortable";
 import {
   buildChats,
   buildFolders,
+  groupByHost,
   groupByProject,
   isQuiet,
   matchesQuery,
@@ -270,9 +271,11 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
     () => new Map<string, ProviderSummary>(providers.map((provider) => [provider.id, provider])),
     [providers],
   );
-  const grouped = settings.projects === "headers" && !archiveMode && needle === "";
-  const showProject = !activeFolder.startsWith("project:") && !grouped;
-  const showHost = (hosts?.length ?? 0) > 1;
+  const listing = !archiveMode && needle === "";
+  const groupedByHost = settings.machineHeaders && listing;
+  const grouped = groupedByHost || (settings.projects === "headers" && listing);
+  const showProject = !activeFolder.startsWith("project:") && (!grouped || groupedByHost);
+  const showHost = (hosts?.length ?? 0) > 1 && !groupedByHost;
   const pinDragAllowed = !archiveMode && needle === "";
 
   const pinnedIds = useMemo(
@@ -432,7 +435,7 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
                   ) : shown.length === 0 ? (
                     note(emptyText)
                   ) : grouped ? (
-                    groupByProject(visible, projects).map((group) => (
+                    (groupedByHost ? groupByHost(visible) : groupByProject(visible, projects)).map((group) => (
                       <section key={group.key} className="mb-1">
                         <GroupHeader
                           group={group}

@@ -1,4 +1,5 @@
-// A project heading in "List headers" mode: click to collapse, right-click
+// A project heading in "List headers" mode, or a machine heading with
+// "Group by machine": click to collapse, right-click
 // to colour the project. Collapsed headings keep the unread count and the
 // most urgent status visible.
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
@@ -24,7 +25,9 @@ export function GroupHeader({
   const name =
     group.key === "pinned"
       ? t("folder.pinned")
-      : group.project === null
+      : group.host !== undefined
+        ? (group.host?.name ?? t("folder.unknownMachine"))
+        : group.project === null
         ? t("folder.other")
         : group.project.isPersonal
           ? t("folder.personal")

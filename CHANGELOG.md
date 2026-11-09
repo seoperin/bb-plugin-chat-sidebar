@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Group by machine.** A new setting puts the list under a heading per
+  machine, in order of use, for chats spread across hosts. Pinned chats stay
+  on top; chats with no known machine land in a trailing **Unknown machine**
+  group. While on, it takes the place of project list headers and rows show
+  their project again.
 - Optional chat icons: set **Chat avatar** to **Icon from the title** and each
   chat's avatar shows an icon picked from words in its title (English and
   Russian rules), or a stable one by a hash of the title. Right-click a chat →

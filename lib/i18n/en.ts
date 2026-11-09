@@ -15,6 +15,7 @@ export const en = {
   "folder.personal": "Personal",
   "folder.pinned": "Pinned",
   "folder.other": "Other",
+  "folder.unknownMachine": "Unknown machine",
   "folder.tabs": "Folders",
   "folder.hasWaiting": "Something is waiting for you",
   "folder.hasWorking": "Something is working",

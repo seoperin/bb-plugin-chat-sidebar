@@ -1,9 +1,11 @@
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { describe, expect, it } from "vitest";
 
 import {
   buildChats,
   buildFolders,
   childTree,
+  groupByHost,
   groupByProject,
   isQuiet,
   matchesQuery,
@@ -271,6 +273,30 @@ describe("groupByProject", () => {
       ["proj_b", ["b"]],
       ["proj_a", ["a"]],
       ["", ["x"]],
+    ]);
+  });
+});
+
+describe("groupByHost", () => {
+  it("puts pins first, then machines by use, then chats with no known machine", () => {
+    const laptop = { id: "host_laptop", name: "Laptop" } as NonNullable<PluginSidebarThread["host"]>;
+    const pod = { id: "host_pod", name: "DevPod" } as NonNullable<PluginSidebarThread["host"]>;
+    const rows = buildChats(
+      [
+        thread("pin", { isPinned: true, host: pod }),
+        thread("l1", { host: laptop, updatedAt: NOW - 3_000 }),
+        thread("p1", { host: pod, updatedAt: NOW }),
+        thread("l2", { host: laptop, updatedAt: NOW - 1_000 }),
+        thread("none", { host: null, updatedAt: NOW - 2_000 }),
+      ],
+      projects,
+    );
+    const groups = groupByHost(rows);
+    expect(groups.map((group) => [group.key, group.host?.name ?? null, ids(group.chats)])).toEqual([
+      ["pinned", null, ["pin"]],
+      ["host:host_pod", "DevPod", ["p1"]],
+      ["host:host_laptop", "Laptop", ["l2", "l1"]],
+      ["host:", null, ["none"]],
     ]);
   });
 });
