@@ -39,6 +39,8 @@ interface FoldersValue {
   /** The user has arranged the folders (otherwise they follow the settings). */
   customized: boolean;
   setLayout: (next: FolderLayout) => void;
+  /** Saves the machine order that Machines folders and machine headings follow. */
+  setHostOrder: (hostOrder: string[]) => void;
   updateEntry: (id: string, patch: Partial<FolderEntry>) => void;
   /** Delete a custom folder, with "Undo" in the toast. */
   deleteEntry: (id: string, name: string) => void;
@@ -226,6 +228,7 @@ export function FoldersProvider({ children }: { children: ReactNode }) {
       layout,
       customized,
       setLayout,
+      setHostOrder: (hostOrder) => setLayout({ ...latest(), hostOrder }),
       updateEntry: (id, patch) => {
         const current = latest();
         // A field that saves as its pane closes may come after the folder was deleted.

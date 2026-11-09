@@ -27,7 +27,7 @@ export interface Chat {
   activityAt: number;
 }
 
-/** `all`, `attention`, `archive`, `project:<id>`, `section:<id>` or `custom:<id>`. */
+/** `all`, `attention`, `archive`, `project:<id>`, `host:<id>`, `section:<id>` or `custom:<id>`. */
 export type FolderId = string;
 
 export interface Folder {
@@ -261,6 +261,10 @@ export function matchesRule(row: Chat, rule: FolderRule, now: number): boolean {
   if (rule.since === "week" && row.activityAt < now - 7 * 24 * 60 * MINUTE) return false;
   if (rule.excludeRead && !row.unread) return false;
   if (rule.excludeProjects.includes(row.thread.projectId)) return false;
+  const hostId = row.thread.host?.id ?? null;
+  const hosts = rule.hosts ?? [];
+  if (hosts.length > 0 && (hostId === null || !hosts.includes(hostId))) return false;
+  if (hostId !== null && (rule.excludeHosts ?? []).includes(hostId)) return false;
   return true;
 }
 
@@ -278,7 +282,54 @@ export function projectsByUse(
     .sort((a, b) => (lastUse.get(b.id) ?? 0) - (lastUse.get(a.id) ?? 0));
 }
 
-/** The strip in the user's order: hidden entries dropped, Projects and Sections expanded. */
+export type SidebarHost = NonNullable<PluginSidebarThread["host"]>;
+
+/**
+ * Machines that have chats: first the ones in the user's order, then the rest
+ * by latest activity.
+ */
+export function hostsInOrder(rows: readonly Chat[], hostOrder: readonly string[] = []): SidebarHost[] {
+  const lastUse = new Map<string, { host: SidebarHost; at: number }>();
+  for (const row of rows) {
+    const { host } = row.thread;
+    if (host === null || host === undefined) continue;
+    const seen = lastUse.get(host.id);
+    if (seen === undefined || row.activityAt > seen.at) lastUse.set(host.id, { host, at: row.activityAt });
+  }
+  const rank = new Map(hostOrder.map((id, index) => [id, index]));
+  return [...lastUse.values()]
+    .sort((a, b) => {
+      const ra = rank.get(a.host.id);
+      const rb = rank.get(b.host.id);
+      if (ra !== undefined && rb !== undefined) return ra - rb;
+      if (ra !== undefined) return -1;
+      if (rb !== undefined) return 1;
+      return b.at - a.at;
+    })
+    .map((entry) => entry.host);
+}
+
+/**
+ * The saved machine order after moving one machine a step up or down among
+ * the machines shown; null when it cannot move. Machines shown but not yet in
+ * the saved order are written in, so the order stays as the user sees it.
+ */
+export function moveHost(
+  hostOrder: readonly string[],
+  shown: readonly string[],
+  hostId: string,
+  step: -1 | 1,
+): string[] | null {
+  const index = shown.indexOf(hostId);
+  const target = index + step;
+  if (index === -1 || target < 0 || target >= shown.length) return null;
+  const next = [...shown];
+  [next[index], next[target]] = [next[target]!, next[index]!];
+  const rest = hostOrder.filter((id) => !shown.includes(id));
+  return [...next, ...rest];
+}
+
+/** The strip in the user's order: hidden entries dropped, Projects, Machines and Sections expanded. */
 export function buildFolders(
   rows: readonly Chat[],
   projects: readonly PluginSidebarProject[],
@@ -351,6 +402,14 @@ export function buildFolders(
           );
         }
         break;
+      case "machines":
+        for (const host of hostsInOrder(rows, layout.hostOrder)) {
+          add(
+            { ...common, id: `host:${host.id}`, name: host.name },
+            (row) => row.thread.host?.id === host.id,
+          );
+        }
+        break;
       case "sections": {
         const used = new Set(rows.map((row) => row.thread.sectionId));
         for (const section of sections) {
@@ -394,8 +453,6 @@ export function folderBlocks(folders: readonly Folder[]): { entryId: string; fol
   }
   return blocks;
 }
-
-export type SidebarHost = NonNullable<PluginSidebarThread["host"]>;
 
 export interface ProjectGroup {
   /** `pinned` for the pinned block, otherwise the project id (`""` when unknown). */
@@ -493,10 +550,10 @@ export function avatarLetter(row: Chat): string {
 
 /**
  * "Group by machine": pinned chats first as their own block, then one group
- * per machine in order of use. Chats with no known machine land in one
- * trailing group. Rows keep their order inside a group.
+ * per machine in the user's order (see `hostsInOrder`). Chats with no known
+ * machine land in one trailing group. Rows keep their order inside a group.
  */
-export function groupByHost(rows: readonly Chat[]): ProjectGroup[] {
+export function groupByHost(rows: readonly Chat[], hostOrder: readonly string[] = []): ProjectGroup[] {
   const pinned = rows.filter((row) => row.thread.isPinned);
   const groups: ProjectGroup[] = [];
   if (pinned.length > 0) groups.push({ key: "pinned", project: null, chats: pinned });
@@ -514,7 +571,10 @@ export function groupByHost(rows: readonly Chat[]): ProjectGroup[] {
     if (group === undefined) byHost.set(key, { key, project: null, host, chats: [row] });
     else group.chats.push(row);
   }
-  groups.push(...byHost.values());
+  for (const host of hostsInOrder(rows, hostOrder)) {
+    const group = byHost.get(`host:${host.id}`);
+    if (group !== undefined) groups.push(group);
+  }
   if (unknown.length > 0) groups.push({ key: "host:", project: null, host: null, chats: unknown });
   return groups;
 }

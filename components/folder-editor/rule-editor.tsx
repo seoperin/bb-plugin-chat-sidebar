@@ -11,7 +11,7 @@ import { Icon } from "@/components/ui/icon";
 import { swatch } from "@/lib/colors";
 import { FOLDER_SINCE, FOLDER_STATUSES, hasFilters, MAX_ACTIVITY_HOURS, type FolderRule } from "@/lib/folders";
 import type { MessageKey } from "@/lib/i18n";
-import { matchesRule } from "@/lib/model";
+import { hostsInOrder, matchesRule } from "@/lib/model";
 import { cn } from "@/lib/utils";
 import { useT } from "../chat-context";
 import { useProjectColors } from "../project-colors";
@@ -46,6 +46,15 @@ export function RuleEditor({
     );
     return [...ids].map((id) => providers.find((provider) => provider.id === id) ?? { id, displayName: id });
   }, [rows, providers]);
+  const hosts = useMemo(() => hostsInOrder(rows), [rows]);
+  const ruleHosts = rule.hosts ?? [];
+  const ruleExcludeHosts = rule.excludeHosts ?? [];
+  const hostChips = (picked: readonly string[], onToggle: (id: string) => void) =>
+    hosts.map((host) => (
+      <Chip key={host.id} active={picked.includes(host.id)} onClick={() => onToggle(host.id)}>
+        <span className="truncate">{host.name}</span>
+      </Chip>
+    ));
   const titleOf = useMemo(() => {
     const titles = new Map(rows.map((row) => [row.thread.id, row.thread.displayTitle]));
     return (id: string) => titles.get(id) ?? null;
@@ -126,6 +135,11 @@ export function RuleEditor({
               set({ projects: toggle(rule.projects, project.id) }),
             ),
           )}
+        </Field>
+      ) : null}
+      {hosts.length > 1 ? (
+        <Field title={t("folders.machines")}>
+          {hostChips(ruleHosts, (id) => set({ hosts: toggle(ruleHosts, id) }))}
         </Field>
       ) : null}
       {sections.length > 0 ? (
@@ -213,6 +227,11 @@ export function RuleEditor({
               set({ excludeProjects: toggle(rule.excludeProjects, project.id) }),
             ),
           )}
+        </Field>
+      ) : null}
+      {hosts.length > 1 ? (
+        <Field title={t("folders.machines")}>
+          {hostChips(ruleExcludeHosts, (id) => set({ excludeHosts: toggle(ruleExcludeHosts, id) }))}
         </Field>
       ) : null}
       {rule.excludeChats.length > 0 ? (

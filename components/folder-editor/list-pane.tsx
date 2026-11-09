@@ -18,7 +18,7 @@ import {
   type TemplateId,
 } from "@/lib/folders";
 import type { MessageKey } from "@/lib/i18n";
-import { matchesRule, needsAttention, projectsByUse } from "@/lib/model";
+import { hostsInOrder, matchesRule, needsAttention, projectsByUse } from "@/lib/model";
 import type { rpcContract } from "@/lib/rpc";
 import type { ChatSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,8 @@ export function ListPane({
         return t("folders.archiveHint");
       case "projects":
         return t("folders.projectsHint", { count: projectsByUse(rows, projects).length });
+      case "machines":
+        return t("folders.machinesHint", { count: hostsInOrder(rows).length });
       case "sections":
         return t("folders.sectionsHint", {
           count: sections.filter((section) => rows.some((row) => row.thread.sectionId === section.id)).length,

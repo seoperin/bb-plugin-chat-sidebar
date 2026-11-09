@@ -7,6 +7,14 @@
   on top; chats with no known machine land in a trailing **Unknown machine**
   group. While on, it takes the place of project list headers and rows show
   their project again.
+- **Machine order.** Right-click a machine heading or a machine folder →
+  **Move up** / **Move down**, or set the order in **Edit folders → Machines**.
+  Machines you have not placed follow by latest activity. The order syncs
+  across your devices with the folders.
+- **Machine folders.** A new built-in **Machines** entry gives each machine
+  its own folder, like Projects. It starts hidden; show it in **Edit folders**.
+  Custom folders can include or leave out chats by machine, so a folder can
+  be "this project on this machine".
 - Optional chat icons: set **Chat avatar** to **Icon from the title** and each
   chat's avatar shows an icon picked from words in its title (English and
   Russian rules), or a stable one by a hash of the title. Right-click a chat →
