@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.10
+
+- Prioritize title matches over pinned chats and message-only matches. Match
+  words in any order, normalize separators and ё/е, and allow one typo in
+  words of five or more letters without correcting task numbers.
+- Apply the same title matching to paginated archive metadata. Open the matched
+  sub-agent, support Enter for archive-only results, and show search failures
+  and incomplete message results explicitly. Keep the existing search field
+  and folder controls.
+- Use synthetic, anonymous search fixtures and record public marketplace
+  compatibility and patch-release rules in AGENTS.md.
+
 ## 0.2.9
 
 - Fix live activity status on bb 0.49: use the current workflow, background

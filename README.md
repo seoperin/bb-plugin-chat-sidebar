@@ -65,9 +65,14 @@ view, so nothing about how bb works changes.
   preference. You can then pick another model for that chat. Projects without
   saved defaults keep bb's selection; permissions and environment stay yours.
 - **Search** by title, project, branch, or sub-agent, and inside the
-  conversations: a chat that only its messages mention shows up too, with the
-  matching words under its title. Archived chats it finds are listed under
-  the results.
+  conversations. Titles rank first: exact names, prefixes, phrases, then words
+  in any order. Case, separators and ё/е do not matter; task keys work with or
+  without separators. Words of five or more letters allow one typo; numbers
+  are never corrected. Message hits show a matching excerpt. A result found
+  in a folded sub-agent opens that sub-agent. Archived titles use the same
+  matching rules and appear below active results. Enter opens the first hit,
+  including an archive-only hit. Message search starts at three characters;
+  incomplete or failed searches are shown explicitly.
 - **bb's own thread menu.** Right-click a chat for the same menu as bb's
   rows and thread header: split, copy link, read, pin, rename, archive,
   delete, per-thread notifications, and whatever other plugins add, plus the
@@ -179,6 +184,7 @@ app.tsx                 registers the thread-list slot, Add to folder, and menu 
 server.ts               settings, project colours, folders, row buttons (RPC + realtime)
 lib/                    pure logic, unit-tested
   model.ts              chats, folding, folders, project groups, search, pin order
+  search.ts             title matching, normalization, typo tolerance, result ranking
   folders.ts            the folder layout, custom folder rules, templates, icons
   folder-store.ts       the stored layout: revisions, history, restore
   folder-settings.ts    the old folder settings kept in step with the layout

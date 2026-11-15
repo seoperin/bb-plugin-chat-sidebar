@@ -24,7 +24,9 @@ export const ru: Messages = {
   "search.archived": "В архиве · {count}",
   "search.archivedMore": "Ещё {count}",
   "search.onlyArchived": "Нашлось только в архиве",
-  "search.searching": "Ищу в сообщениях…",
+  "search.searching": "Ищу…",
+  "search.error": "Часть поиска недоступна. Поиск по загруженным названиям работает.",
+  "search.truncated": "По сообщениям показаны только первые 50 совпадений в каждой группе. Уточните запрос.",
   "search.you": "Вы: ",
 
   "list.label": "Чаты",

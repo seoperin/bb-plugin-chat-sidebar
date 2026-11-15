@@ -10,12 +10,15 @@
 // and the list can show it whether or not that page is loaded.
 import { useEffect, useState } from "react";
 import { useSdk } from "@get-bb/plugin-sdk/app";
+import { titleSearchScore } from "@/lib/search";
 
 export const MIN_MESSAGE_QUERY = 3;
 const DEBOUNCE_MS = 250;
 const LIMIT = "50";
+const TITLE_PAGE_SIZE = 100;
 
 export interface MessageMatch {
+  threadId: string;
   text: string;
   highlightRanges: readonly { start: number; end: number }[];
   from: "user" | "assistant" | "system";
@@ -41,34 +44,61 @@ export interface MessageSearch {
   /** The query these matches are for, so stale ones are never shown for a new query. */
   query: string;
   loading: boolean;
+  error: boolean;
+  truncated: boolean;
 }
 
-const EMPTY: MessageSearch = { matches: new Map(), archived: [], query: "", loading: false };
+const EMPTY: MessageSearch = { matches: new Map(), archived: [], query: "", loading: false, error: false, truncated: false };
 const FROM = { user_message: "user", assistant_message: "assistant", system_message: "system" } as const;
 
 export function useMessageSearch(query: string, includeArchived: boolean): MessageSearch {
   const sdk = useSdk();
   const [state, setState] = useState<MessageSearch>(EMPTY);
   const trimmed = query.trim();
+  const searching = trimmed !== "";
+  const [archiveTitles, setArchiveTitles] = useState<{ rows: ArchivedHit[]; loading: boolean; error: boolean }>({ rows: [], loading: false, error: false });
+
+  // Titles need the same matching as live chats, independent of the message-search limit.
+  // Fetch metadata once per search session, not on every keystroke.
+  useEffect(() => {
+    if (!searching) { setArchiveTitles({ rows: [], loading: false, error: false }); return; }
+    const controller = new AbortController();
+    setArchiveTitles({ rows: [], loading: true, error: false });
+    void (async () => {
+      const rows: ArchivedHit[] = [];
+      for (let offset = 0; ; offset += TITLE_PAGE_SIZE) {
+        const page = await sdk.threads.list({ archived: true, limit: TITLE_PAGE_SIZE, offset, signal: controller.signal });
+        if (controller.signal.aborted) return;
+        rows.push(...page.map((thread) => ({ id: thread.id, title: thread.title ?? thread.titleFallback ?? thread.id,
+          projectId: thread.projectId, providerId: thread.providerId, branch: thread.environmentBranchName,
+          updatedAt: thread.updatedAt, match: null })));
+        if (page.length < TITLE_PAGE_SIZE) break;
+      }
+      setArchiveTitles({ rows, loading: false, error: false });
+    })().catch(() => { if (!controller.signal.aborted) setArchiveTitles({ rows: [], loading: false, error: true }); });
+    return () => controller.abort();
+  }, [sdk, searching]);
 
   useEffect(() => {
     if (trimmed.length < MIN_MESSAGE_QUERY) {
       setState(EMPTY);
       return;
     }
-    setState((current) => ({ ...current, loading: true }));
+    setState({ ...EMPTY, query: trimmed, loading: true });
     const controller = new AbortController();
     const timer = setTimeout(() => {
       sdk.threads
         .search({ query: trimmed, limitPerGroup: LIMIT, signal: controller.signal })
         .then((response) => {
+          if (controller.signal.aborted) return;
           const matches = new Map<string, MessageMatch>();
-          const groups = includeArchived ? [response.active, response.archived] : [response.active];
+          const groups = includeArchived ? [response.archived] : [response.active];
           for (const group of groups) {
             for (const result of group.results) {
               const match = result.matches.find((candidate) => candidate.sourceKind in FROM);
               if (match === undefined || matches.has(result.thread.id)) continue;
               matches.set(result.thread.id, {
+                threadId: result.thread.id,
                 text: match.text,
                 highlightRanges: match.highlightRanges,
                 from: FROM[match.sourceKind as keyof typeof FROM],
@@ -88,17 +118,18 @@ export function useMessageSearch(query: string, includeArchived: boolean): Messa
                 match === undefined
                   ? null
                   : {
+                      threadId: thread.id,
                       text: match.text,
                       highlightRanges: match.highlightRanges,
                       from: FROM[match.sourceKind as keyof typeof FROM],
                     },
             };
           });
-          archived.sort((a, b) => b.updatedAt - a.updatedAt);
-          setState({ matches, archived, query: trimmed, loading: false });
+          const truncated = groups.some((group) => group.total > group.results.length) || response.archived.total > response.archived.results.length;
+          setState({ matches, archived, query: trimmed, loading: false, error: false, truncated });
         })
         .catch(() => {
-          if (!controller.signal.aborted) setState({ ...EMPTY, query: trimmed });
+          if (!controller.signal.aborted) setState({ ...EMPTY, query: trimmed, error: true });
         });
     }, DEBOUNCE_MS);
     return () => {
@@ -107,5 +138,11 @@ export function useMessageSearch(query: string, includeArchived: boolean): Messa
     };
   }, [sdk, trimmed, includeArchived]);
 
-  return state.query === trimmed ? state : { ...EMPTY, loading: state.loading };
+  if (!searching) return EMPTY;
+  const current = state.query === trimmed ? state : { ...EMPTY, loading: trimmed.length >= MIN_MESSAGE_QUERY };
+  const archived = new Map(archiveTitles.rows.filter((hit) => titleSearchScore(hit.title, trimmed) > 0).map((hit) => [hit.id, hit]));
+  for (const hit of current.archived) if (!archived.has(hit.id)) archived.set(hit.id, hit);
+  return { ...current,
+    archived: [...archived.values()].sort((a, b) => titleSearchScore(b.title, trimmed) - titleSearchScore(a.title, trimmed) || b.updatedAt - a.updatedAt),
+    loading: current.loading || archiveTitles.loading, error: current.error || archiveTitles.error };
 }

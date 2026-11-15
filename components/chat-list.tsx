@@ -36,13 +36,13 @@ import {
   buildFolders,
   groupByProject,
   isQuiet,
-  matchesQuery,
   projectsByUse,
   type Chat,
   type FolderId,
 } from "@/lib/model";
 import { parseStringArray, readStored, writeStored } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { chatSearchScore, titleSearchScore } from "@/lib/search";
 import { ArchivedHits } from "./archived-hits";
 import { BackToTop } from "./back-to-top";
 import { ChatProvider, useChat } from "./chat-context";
@@ -241,7 +241,14 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
   // A chat its title does not find may still be found by its messages, its
   // folded sub-agents' included; that match is shown under its title.
   const snippetOf = (chat: Chat): MessageMatch | undefined => {
-    if (messageSearch.matches.size === 0 || matchesQuery(chat, needle)) return undefined;
+    if (needle === "") return undefined;
+    const ownTitleScore = titleSearchScore(chat.thread.displayTitle, needle);
+    const child = chat.children
+      .filter((thread) => titleSearchScore(thread.displayTitle, needle) > 0)
+      .sort((a, b) => titleSearchScore(b.displayTitle, needle) - titleSearchScore(a.displayTitle, needle))[0];
+    if (ownTitleScore > 0 && (child === undefined || ownTitleScore >= titleSearchScore(child.displayTitle, needle))) return undefined;
+    if (child !== undefined) return { threadId: child.id, text: child.displayTitle, highlightRanges: [], from: "system" };
+    if (chatSearchScore(chat, needle) > 0) return undefined;
     return (
       messageSearch.matches.get(chat.thread.id) ??
       chat.children.map((child) => messageSearch.matches.get(child.id)).find((match) => match !== undefined)
@@ -250,8 +257,9 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
   const matched = (archiveMode ? archivedChats : ordered).filter(
     (chat) =>
       (archiveMode || currentFolder === null || currentFolder.matches(chat)) &&
-      (matchesQuery(chat, needle) || snippetOf(chat) !== undefined),
+      (needle === "" || chatSearchScore(chat, needle) > 0 || snippetOf(chat) !== undefined),
   );
+  if (needle !== "") matched.sort((a, b) => chatSearchScore(b, needle) - chatSearchScore(a, needle));
   // Quiet old chats hide behind one button; search and Attention see all.
   const cutoff = settings.hideQuietAfterDays > 0 ? now - settings.hideQuietAfterDays * DAY : null;
   const hidesQuiet =
@@ -343,7 +351,7 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
         ? t("search.searching")
         : archivedHits.length > 0
           ? t("search.onlyArchived")
-          : t("search.nothing", { query: query.trim() })
+          : messageSearch.error ? t("search.error") : t("search.nothing", { query: query.trim() })
       : archiveMode
         ? archivePages?.status === "loading"
           ? t("list.archiveLoading")
@@ -393,7 +401,9 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
                   query={query}
                   onChange={setQuery}
                   onSubmit={() => {
-                    if (shown[0] !== undefined) open(shown[0].thread.id, false);
+                    const first = shown[0];
+                    if (first !== undefined) open(snippetOf(first)?.threadId ?? first.thread.id, false);
+                    else if (archivedHits[0] !== undefined) open(archivedHits[0].id, false);
                   }}
                   onArrowDown={() => focusRow(listRef.current, null, "first")}
                 />
@@ -459,6 +469,8 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
                 </button>
               ) : null}
               <ArchivedHits hits={archivedHits} projects={projects} now={now} onOpen={open} />
+              {needle !== "" && (shown.length > 0 || archivedHits.length > 0) && messageSearch.error ? note(t("search.error")) : null}
+              {needle !== "" && messageSearch.truncated ? note(t("search.truncated")) : null}
             {archiveMode && archivePages?.hasNextPage ? (
                 <button
                   type="button"

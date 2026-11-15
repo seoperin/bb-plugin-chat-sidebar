@@ -33,7 +33,9 @@ export const en = {
   "search.archived": "In the archive · {count}",
   "search.archivedMore": "Show {count} more",
   "search.onlyArchived": "Found only in the archive",
-  "search.searching": "Searching messages…",
+  "search.searching": "Searching…",
+  "search.error": "Some search results are unavailable. Loaded chat titles are still searched.",
+  "search.truncated": "Message search returned only the first 50 matches per group. Refine your search.",
   "search.you": "You: ",
 
   // List states

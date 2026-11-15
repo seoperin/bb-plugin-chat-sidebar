@@ -169,7 +169,7 @@ function TimeOrShortcut({ row, now }: { row: Chat; now: number }) {
 const SNIPPET_LEAD = 16;
 
 /** The message search found the chat by: the matched words stand out. */
-export function Snippet({ match }: { match: MessageMatch }) {
+export function Snippet({ match, origin }: { match: MessageMatch; origin?: string }) {
   const { t } = useChat().i18n;
   const ranges = [...match.highlightRanges].sort((a, b) => a.start - b.start);
   // The sidebar is narrow and the snippet two lines: start a few words before
@@ -195,6 +195,7 @@ export function Snippet({ match }: { match: MessageMatch }) {
   parts.push(match.text.slice(at));
   return (
     <span className="mt-0.5 line-clamp-2 whitespace-normal break-words text-[11.5px] leading-snug text-muted-foreground">
+      {origin !== undefined && origin !== match.text ? <span className="text-foreground/70">{origin} · </span> : null}
       {match.from === "user" ? <span className="text-foreground/70">{t("search.you")}</span> : null}
       {parts}
     </span>
@@ -267,7 +268,8 @@ export function ChatRow({
   const { settings, i18n } = useChat();
   const { t } = i18n;
   const { thread } = row;
-  const { splitProps } = experimental_useSidebarThreadSplit(thread.id);
+  const target = row.children.find((child) => child.id === snippet?.threadId) ?? thread;
+  const { splitProps } = experimental_useSidebarThreadSplit(target.id);
   const shortcut = useSidebarThreadShortcut(thread.id);
   const [renaming, setRenaming] = useState(false);
   const compact = settings.density === "compact";
@@ -280,7 +282,7 @@ export function ChatRow({
     // Shift and Alt keep the browser's own link behaviour.
     if (event.button !== 0 || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    onOpen(thread.id, event.metaKey || event.ctrlKey);
+    onOpen(target.id, event.metaKey || event.ctrlKey);
   };
 
   const toggle =
@@ -310,7 +312,7 @@ export function ChatRow({
       ) : (
         <ChatMenu row={row} onOpen={onOpen} onRename={() => setRenaming(true)}>
           <a
-            href={thread.href}
+            href={target.href}
             data-sidebar-thread-shortcut-target=""
             data-sidebar-thread-id={thread.id}
             data-chat-anchor=""
@@ -338,7 +340,7 @@ export function ChatRow({
                   {title}
                   <TimeOrShortcut row={row} now={now} />
                 </span>
-                <Snippet match={snippet} />
+                <Snippet match={snippet} origin={target.id !== thread.id ? target.displayTitle : undefined} />
               </span>
             ) : compact ? (
               <>
@@ -370,7 +372,7 @@ export function ChatRow({
                   {toggle}
                   {row.unread ? <UnreadDot muted={mutedIcon !== null} /> : null}
                 </span>
-                {snippet !== undefined ? <Snippet match={snippet} /> : null}
+                {snippet !== undefined ? <Snippet match={snippet} origin={target.id !== thread.id ? target.displayTitle : undefined} /> : null}
               </span>
             )}
           </a>

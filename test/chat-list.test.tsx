@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, screen } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadPluginApp, renderSlot, type TestThreadActionsResolver } from "@get-bb/plugin-sdk/testing/app";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 
 import app from "../app";
 import { NOW, project, thread } from "./fixtures";
@@ -33,6 +34,7 @@ const projects = [project("proj_a", "Alpha"), project("proj_b", "Beta")];
 async function render(
   settings: Record<string, string | number | boolean> = {},
   threadActions?: TestThreadActionsResolver,
+  options: { threads?: PluginSidebarThread[]; search?: (query: string, signal?: AbortSignal) => Promise<unknown>; list?: (offset: number) => Promise<unknown> } = {},
 ) {
   const loaded = await loadPluginApp(app);
   const registration = loaded.threadLists[0];
@@ -42,13 +44,14 @@ async function render(
     registration,
     { activeThreadId: null, activeProjectId: null, isCompactViewport: false, onNavigate, searchQuery: "" },
     {
-      sidebarThreads: { status: "ready", threads, projects, sections: [] },
+      sidebarThreads: { status: "ready", threads: options.threads ?? threads, projects, sections: [] },
       settings,
       threadActions,
       sdk: {
         threads: {
+          list: async ({ offset }: { offset: number }) => options.list ? options.list(offset) : [],
           // Only "deploy logs" is in a message (of the sub-agent folded into thr_wait).
-          search: async ({ query }: { query: string }) => ({
+          search: async ({ query, signal }: { query: string; signal?: AbortSignal }) => options.search ? options.search(query, signal) : ({
             active: {
               results:
                 query === "deploy logs"
@@ -142,6 +145,51 @@ describe("chat list", () => {
     const mark = await screen.findByText("deploy logs", { selector: "mark" });
     expect(mark.closest("li")?.getAttribute("data-chat-row")).toBe("thr_wait");
     expect(view.container.querySelectorAll("a[data-sidebar-thread-id]")).toHaveLength(1);
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Enter" });
+    expect(view.inspection.navigateCalls).toEqual([{ method: "toThread", threadId: "thr_child", options: { split: false } }]);
+  });
+
+  it("ranks an exact title before a child title and pinned message-only hits", async () => {
+    const { view } = await render({ language: "English" }, undefined, {
+      threads: [
+        thread("noise", { title: "Notes", isPinned: true, pinnedAt: NOW }),
+        thread("exact", { title: "Widget", updatedAt: NOW - 10_000 }),
+        thread("parent", { title: "Investigation" }),
+        thread("child", { title: "Widget retry", parentThreadId: "parent" }),
+      ],
+      search: async () => ({ active: { total: 1, results: [{ thread: { id: "noise", title: "Notes" }, matches: [{ sourceKind: "user_message", text: "Widget in notes", highlightRanges: [], sourceSeq: 1 }] }] }, archived: { total: 0, results: [] } }),
+    });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "WIDGET" } });
+    await screen.findByText("Widget in notes");
+    expect([...view.container.querySelectorAll("li[data-chat-row]")].map((el) => el.getAttribute("data-chat-row"))).toEqual(["exact", "parent", "noise"]);
+  });
+
+  it("finds words in a different order and opens the matched child title", async () => {
+    const { view } = await render({ language: "English" });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "task sub" } });
+    const row = view.container.querySelector<HTMLAnchorElement>('a[data-sidebar-thread-id="thr_wait"]')!;
+    expect(row.href).toContain("thr_child");
+    fireEvent.click(row, { button: 0 });
+    expect(view.inspection.navigateCalls).toEqual([{ method: "toThread", threadId: "thr_child", options: { split: false } }]);
+  });
+
+  it("shows a message-search failure without claiming there are no matches", async () => {
+    await render({ language: "English" }, undefined, { search: async () => { throw new Error("offline"); } });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "missing text" } });
+    expect(await screen.findByText("Some search results are unavailable. Loaded chat titles are still searched.")).toBeTruthy();
+    expect(screen.queryByText("Nothing matches “missing text”")).toBeNull();
+  });
+
+  it("keeps the newest results when an aborted request still resolves", async () => {
+    let resolveOld: (value: unknown) => void = () => { throw new Error("old query not sent"); };
+    const search = vi.fn(async (query: string) => query === "old request" ? new Promise((resolve) => { resolveOld = resolve; }) : ({ active: { total: 1, results: [{ thread: { id: "thr_wait", title: "Deploy fix" }, matches: [{ sourceKind: "user_message", text: "fresh result", highlightRanges: [], sourceSeq: 1 }] }] }, archived: { total: 0, results: [] } }));
+    await render({ language: "English" }, undefined, { search });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "old request" } });
+    await waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "fresh" } });
+    await screen.findByText("fresh result");
+    resolveOld({ active: { total: 0, results: [] }, archived: { total: 0, results: [] } });
+    await waitFor(() => expect(screen.getByText("fresh result")).toBeTruthy());
   });
 
   it("starts a new chat in the open project's folder", async () => {
@@ -165,6 +213,37 @@ describe("chat list", () => {
     expect(link?.getAttribute("href")).toBe("/projects/proj_a/threads/thr_gone");
     fireEvent.click(link!, { button: 0 });
     expect(view.inspection.navigateCalls).toEqual([{ method: "toThread", threadId: "thr_gone", options: { split: false } }]);
+  });
+
+  it("opens an archive-only result with Enter", async () => {
+    const { view } = await render({ language: "English" });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "old notes" } });
+    await screen.findByText("Retired spike");
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Enter" });
+    expect(view.inspection.navigateCalls).toEqual([{ method: "toThread", threadId: "thr_gone", options: { split: false } }]);
+  });
+
+  it("searches every page of archive titles with the same rules and reuses them while typing", async () => {
+    const list = vi.fn(async (offset: number) => offset === 0
+      ? Array.from({ length: 100 }, (_, i) => ({ ...thread(`arch_${i}`, { title: "Other archived chat" }), environmentBranchName: null }))
+      : [{ ...thread("arch_target", { title: "TASK-1042 [Example] Prepare DTOs" }), environmentBranchName: null }]);
+    const { view } = await render({ language: "English" }, undefined, { list });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "TASK1042" } });
+    await screen.findByText("TASK-1042 [Example] Prepare DTOs");
+    expect(list.mock.calls.map(([offset]) => offset)).toEqual([0, 100]);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "1042 example" } });
+    expect(screen.getByText("TASK-1042 [Example] Prepare DTOs")).toBeTruthy();
+    expect(list).toHaveBeenCalledTimes(2);
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Enter" });
+    expect(view.inspection.navigateCalls).toEqual([{ method: "toThread", threadId: "arch_target", options: { split: false } }]);
+  });
+
+  it("makes truncated message results explicit", async () => {
+    await render({ language: "English" }, undefined, { search: async () => ({
+      active: { total: 51, results: [] }, archived: { total: 0, results: [] },
+    }) });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "many messages" } });
+    expect(await screen.findByText("Message search returned only the first 50 matches per group. Refine your search.")).toBeTruthy();
   });
 
   it("marks a chat whose notifications are muted in bb", async () => {
