@@ -27,7 +27,7 @@ view, so nothing about how bb works changes.
   buttons, and **Make a separate chat**, which takes a sub-agent out of the tree.
 - **Live status.** You can see at a glance whether a chat needs you
   (a question, an approval, a failed send, an error), is working (and on what:
-  a turn, a workflow, background agents, a goal, the environment), finished
+  a turn, a workflow, background agents, commands, planning), finished
   unread, or holds an unsent draft. Statuses that other plugins set on a row
   show up too.
 - **Folders.** All, Attention (waiting, working, or unread), one per project in

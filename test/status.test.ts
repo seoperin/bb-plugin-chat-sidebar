@@ -8,10 +8,17 @@ describe("laneOf", () => {
     expect(laneOf(thread("t", { hasPendingInteraction: true, status: "active" }))).toBe("attention");
     expect(laneOf(thread("t", { queuedWork: "failed" }))).toBe("attention");
     expect(laneOf(thread("t", { status: "active" }))).toBe("working");
-    expect(laneOf(thread("t", { activity: { workflows: 1, backgroundAgents: 0, backgroundCommands: 0, planMode: 0, goals: 0 } }))).toBe("working");
     expect(laneOf(thread("t", { indicator: "unread-success" }))).toBe("done");
     expect(laneOf(thread("t"))).toBeNull();
   });
+
+  it.each(["workflows", "backgroundAgents", "backgroundCommands", "planMode"] as const)(
+    "reads %s activity without a runtime or indicator",
+    (kind) => {
+      const activity = { workflows: 0, backgroundAgents: 0, backgroundCommands: 0, planMode: 0, [kind]: 1 };
+      expect(laneOf(thread("t", { activity }))).toBe("working");
+    },
+  );
 
   it("treats an unknown indicator as quiet", () => {
     expect(laneOf(thread("t", { indicator: "something-new" as never }))).toBeNull();
@@ -25,9 +32,12 @@ describe("statusMessage", () => {
     expect(statusMessage(thread("t", { runtimeStatus: "provisioning" }), "working")).toEqual(["status.provisioning"]);
     expect(
       statusMessage(
-        thread("t", { activity: { workflows: 0, backgroundAgents: 3, backgroundCommands: 0, planMode: 0, goals: 0 } }),
+        thread("t", { activity: { workflows: 0, backgroundAgents: 3, backgroundCommands: 0, planMode: 0 } }),
         "working",
       ),
     ).toEqual(["status.backgroundAgents", { count: 3 }]);
+    expect(
+      statusMessage(thread("t", { activity: { workflows: 0, backgroundAgents: 0, backgroundCommands: 0, planMode: 1 } }), "working"),
+    ).toEqual(["status.planning"]);
   });
 });

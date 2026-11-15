@@ -75,7 +75,6 @@ export const ru: Messages = {
   "status.stopping": "Останавливается",
   "status.workflow": "Идёт воркфлоу",
   "status.planning": "Планирует",
-  "status.goal": "Работает над целью",
   "status.backgroundAgents": {
     one: "{count} фоновый агент",
     few: "{count} фоновых агента",

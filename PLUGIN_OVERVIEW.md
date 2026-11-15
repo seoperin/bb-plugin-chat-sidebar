@@ -3,7 +3,7 @@ Chat Sidebar replaces bb's sidebar thread list with a chat list. The rest of bb'
 ## What you get
 
 - **One row per task.** Sub-agents and forks fold into their parent. Waiting sub-agents mark the chat as needing you; busy ones add to its count. Right-click to jump to them.
-- **Live status.** See whether a chat needs you, is working (a turn, workflow, background agents, goal or environment), finished unread, or has a draft. Other plugins' row statuses show too.
+- **Live status.** See whether a chat needs you, is working (a turn, workflow, background agents, commands or planning), finished unread, or has a draft. Other plugins' row statuses show too.
 - **Folders.** All, Attention (waiting, working or unread), projects in order of use, bb sections, and Archive. Each has unread counts and a status dot. Right-click to mark all read or start a chat. Drag to reorder; on touch, hold first. Folder pictures are experimental.
 - **Your own folders.** Filter by status, project, section, agent, title or branch, waiting time or recent activity; include or exclude chats by hand. Start with "Today" (since local midnight), "Last 24 hours" (a rolling window with adjustable hours), or other templates. Hide, rename, reorder, and pick an icon and colour. Folders sync across devices, retain 20 versions, and ask before deleting, resetting or restoring.
 - **Chat icons.** Optional: avatars show an icon chosen from the chat's title instead of the project's letter; right-click a chat → Chat icon… to pick another. Picks sync across devices.

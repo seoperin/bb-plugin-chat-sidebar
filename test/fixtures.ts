@@ -21,7 +21,7 @@ export function thread(id: string, overrides: Partial<PluginSidebarThread> = {})
     runtimeStatus: "idle",
     queuedWork: "none",
     hasPendingInteraction: false,
-    activity: { workflows: 0, backgroundAgents: 0, backgroundCommands: 0, planMode: 0, goals: 0 },
+    activity: { workflows: 0, backgroundAgents: 0, backgroundCommands: 0, planMode: 0 },
     indicator: "none",
     indicatorLabel: null,
     isUnread: false,
@@ -39,7 +39,7 @@ export function thread(id: string, overrides: Partial<PluginSidebarThread> = {})
     lastReadAt: null,
     latestAttentionAt: 0,
     ...overrides,
-  } as PluginSidebarThread;
+  };
 }
 
 export function project(id: string, name: string, isPersonal = false): PluginSidebarProject {

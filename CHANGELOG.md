@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.2.9
+
+- Fix live activity status on bb 0.49: use the current workflow, background
+  agent, background command and plan-mode counters instead of retired goal
+  fields. Build and type-check against plugin SDK 0.6.132.
+- Keep sub-agent rendering tests independent of Node's native localStorage.
 
 - Optional chat icons: set **Chat avatar** to **Icon from the title** and each
   chat's avatar shows an icon picked from words in its title (English and

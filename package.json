@@ -1,6 +1,6 @@
 {
   "name": "bb-plugin-chat-sidebar",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Read your threads like a messenger: one row per task with live status, an Attention folder, project tabs, and search.",
   "license": "MIT",
   "author": "Evgeniy Perin",
@@ -122,9 +122,9 @@
     "check": "npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
-    "@get-bb/plugin-sdk": "0.6.104",
-    "@radix-ui/react-context-menu": "^2.3.3",
-    "@radix-ui/react-dialog": "^1.1.19",
+    "@get-bb/plugin-sdk": "0.6.132",
+    "@radix-ui/react-context-menu": "^2.4.1",
+    "@radix-ui/react-dialog": "^1.3.1",
     "@testing-library/react": "^16.3.3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.20.4",
@@ -136,7 +136,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "sonner": "^1.7.4",
-    "tailwind-merge": "^3.4.0",
+    "tailwind-merge": "^3.7.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7"
   },

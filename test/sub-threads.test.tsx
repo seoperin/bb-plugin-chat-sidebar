@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, screen } from "@testing-library/react";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadPluginApp, renderSlot } from "@get-bb/plugin-sdk/testing/app";
 
 import app from "../app";
@@ -20,9 +20,18 @@ beforeAll(() => {
   } as unknown as typeof IntersectionObserver;
 });
 
+const stored = new Map<string, string>();
+beforeEach(() => {
+  stored.clear();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => stored.get(key) ?? null,
+    setItem: (key: string, value: string) => void stored.set(key, value),
+  });
+});
+
 afterEach(() => {
   cleanup();
-  localStorage.clear();
+  vi.unstubAllGlobals();
 });
 
 // A lead with a chain six levels deep, plus a second worker beside the first.

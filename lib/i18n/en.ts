@@ -75,7 +75,6 @@ export const en = {
   "status.stopping": "Stopping",
   "status.workflow": "Running a workflow",
   "status.planning": "Planning",
-  "status.goal": "Working on a goal",
   "status.backgroundAgents": { one: "{count} background agent", other: "{count} background agents" },
   "status.backgroundCommand": "Background command",
   "status.queued": "Working, message queued",

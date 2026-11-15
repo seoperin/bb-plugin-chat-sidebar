@@ -2,7 +2,7 @@
 //
 // - attention: blocked on the user (a question, an approval, a failed send,
 //   an error). Nothing moves until they act.
-// - working: a turn, background agents, workflows, goals.
+// - working: a turn, background agents, commands, workflows, plan mode.
 // - done: finished and not looked at yet.
 //
 // bb adds indicator and status kinds over time; anything unknown reads as
@@ -21,7 +21,6 @@ const WORKING_INDICATORS = new Set<string>([
   "workflow",
   "background-agent",
   "background-command",
-  "goal",
   "plan-mode",
   "queued-waiting",
   "working-draft",
@@ -47,7 +46,7 @@ export function laneOf(thread: PluginSidebarThread): Lane | null {
     BUSY_STATUSES.has(thread.runtimeStatus) ||
     BUSY_STATUSES.has(thread.status) ||
     WORKING_INDICATORS.has(thread.indicator) ||
-    activity.workflows + activity.backgroundAgents + activity.backgroundCommands + activity.goals > 0
+    activity.workflows + activity.backgroundAgents + activity.backgroundCommands + activity.planMode > 0
   ) {
     return "working";
   }
@@ -75,8 +74,7 @@ export function statusMessage(thread: PluginSidebarThread, lane: Lane): [Message
   }
   const { activity } = thread;
   if (activity.workflows > 0) return ["status.workflow"];
-  if (thread.indicator === "plan-mode") return ["status.planning"];
-  if (thread.indicator === "goal" || activity.goals > 0) return ["status.goal"];
+  if (thread.indicator === "plan-mode" || activity.planMode > 0) return ["status.planning"];
   // A running turn outranks background work: while the agent answers, it works.
   if (thread.status === "active") return ["status.working"];
   if (activity.backgroundAgents > 0) {
