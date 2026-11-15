@@ -51,7 +51,7 @@ export interface MessageSearch {
 const EMPTY: MessageSearch = { matches: new Map(), archived: [], query: "", loading: false, error: false, truncated: false };
 const FROM = { user_message: "user", assistant_message: "assistant", system_message: "system" } as const;
 
-export function useMessageSearch(query: string, includeArchived: boolean): MessageSearch {
+export function useMessageSearch(query: string): MessageSearch {
   const sdk = useSdk();
   const [state, setState] = useState<MessageSearch>(EMPTY);
   const trimmed = query.trim();
@@ -92,7 +92,7 @@ export function useMessageSearch(query: string, includeArchived: boolean): Messa
         .then((response) => {
           if (controller.signal.aborted) return;
           const matches = new Map<string, MessageMatch>();
-          const groups = includeArchived ? [response.archived] : [response.active];
+          const groups = [response.active];
           for (const group of groups) {
             for (const result of group.results) {
               const match = result.matches.find((candidate) => candidate.sourceKind in FROM);
@@ -136,7 +136,7 @@ export function useMessageSearch(query: string, includeArchived: boolean): Messa
       clearTimeout(timer);
       controller.abort();
     };
-  }, [sdk, trimmed, includeArchived]);
+  }, [sdk, trimmed]);
 
   if (!searching) return EMPTY;
   const current = state.query === trimmed ? state : { ...EMPTY, loading: trimmed.length >= MIN_MESSAGE_QUERY };

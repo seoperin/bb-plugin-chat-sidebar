@@ -237,7 +237,7 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
   const [draggingPin, setDraggingPin] = useState(false);
 
   const needle = query.trim().toLocaleLowerCase();
-  const messageSearch = useMessageSearch(query, archiveMode);
+  const messageSearch = useMessageSearch(query);
   // A chat its title does not find may still be found by its messages, its
   // folded sub-agents' included; that match is shown under its title.
   const snippetOf = (chat: Chat): MessageMatch | undefined => {
@@ -254,12 +254,15 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
       chat.children.map((child) => messageSearch.matches.get(child.id)).find((match) => match !== undefined)
     );
   };
-  const matched = (archiveMode ? archivedChats : ordered).filter(
+  const matched = (archiveMode && needle === "" ? archivedChats : ordered).filter(
     (chat) =>
-      (archiveMode || currentFolder === null || currentFolder.matches(chat)) &&
+      (needle !== "" || archiveMode || currentFolder === null || currentFolder.matches(chat)) &&
       (needle === "" || chatSearchScore(chat, needle) > 0 || snippetOf(chat) !== undefined),
   );
-  if (needle !== "") matched.sort((a, b) => chatSearchScore(b, needle) - chatSearchScore(a, needle));
+  if (needle !== "") matched.sort((a, b) =>
+    chatSearchScore(b, needle) - chatSearchScore(a, needle) ||
+    Number(currentFolder?.matches(b) ?? false) - Number(currentFolder?.matches(a) ?? false),
+  );
   // Quiet old chats hide behind one button; search and Attention see all.
   const cutoff = settings.hideQuietAfterDays > 0 ? now - settings.hideQuietAfterDays * DAY : null;
   const hidesQuiet =
@@ -279,7 +282,7 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
     [providers],
   );
   const grouped = settings.projects === "headers" && !archiveMode && needle === "";
-  const showProject = !activeFolder.startsWith("project:") && !grouped;
+  const showProject = needle !== "" || !activeFolder.startsWith("project:") && !grouped;
   const showHost = (hosts?.length ?? 0) > 1;
   const pinDragAllowed = !archiveMode && needle === "";
 
@@ -471,7 +474,7 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
               <ArchivedHits hits={archivedHits} projects={projects} now={now} onOpen={open} />
               {needle !== "" && (shown.length > 0 || archivedHits.length > 0) && messageSearch.error ? note(t("search.error")) : null}
               {needle !== "" && messageSearch.truncated ? note(t("search.truncated")) : null}
-            {archiveMode && archivePages?.hasNextPage ? (
+            {needle === "" && archiveMode && archivePages?.hasNextPage ? (
                 <button
                   type="button"
                   disabled={archivePages.isFetchingNextPage}

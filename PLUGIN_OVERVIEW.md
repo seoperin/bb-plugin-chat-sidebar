@@ -9,7 +9,7 @@ Chat Sidebar replaces bb's sidebar thread list with a chat list. The rest of bb'
 - **Chat icons.** Optional: avatars show an icon chosen from the chat's title instead of the project's letter; right-click a chat → Chat icon… to pick another. Picks sync across devices.
 - **Project colours.** Distinct colours on chat avatars and project folders. Right-click a project tab, heading or chat to pick one of 15; choices sync across devices.
 - **New chat where you are.** The + starts a chat in the open project or section; right-click to choose a project. With the plugin enabled, bb's new-thread composer restores the project's saved provider, model and reasoning on opening and project changes. Manual picks after that are kept. The plugin does not set permissions or environment.
-- **Search.** Titles first; words in any order; keys without separators; one typo in words of 5+ letters, never numbers. Opens matched sub-agents. Searches archived titles. Enter opens the first result.
+- **Search.** All active chats; titles first, current folder breaks ties. Words in any order, keys without separators, one typo in words of 5+ letters; numbers stay exact. Archive below.
 - **bb's own thread menu.** Right-click for bb's menu, notifications and other plugins' actions, plus sub-agents, project colour and new chat. Add to folder also appears in the thread header. Muted chats show a bell, count in no badge, and stay out of Attention.
 - **Row buttons.** Pick up to three menu actions to show at the right of a chat on hover; the pick syncs across devices.
 - **Messenger order.** Drag pinned chats into your order; the rest follow latest activity. Rows show a time or date. A button returns you to the top after scrolling.

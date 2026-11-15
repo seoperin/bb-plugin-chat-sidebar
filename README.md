@@ -65,14 +65,17 @@ view, so nothing about how bb works changes.
   preference. You can then pick another model for that chat. Projects without
   saved defaults keep bb's selection; permissions and environment stay yours.
 - **Search** by title, project, branch, or sub-agent, and inside the
-  conversations. Titles rank first: exact names, prefixes, phrases, then words
+  conversations across all active chats, regardless of the selected folder.
+  Titles rank first: exact names, prefixes, phrases, then words
   in any order. Case, separators and ё/е do not matter; task keys work with or
   without separators. Words of five or more letters allow one typo; numbers
   are never corrected. Message hits show a matching excerpt. A result found
   in a folded sub-agent opens that sub-agent. Archived titles use the same
   matching rules and appear below active results. Enter opens the first hit,
   including an archive-only hit. Message search starts at three characters;
-  incomplete or failed searches are shown explicitly.
+  incomplete or failed searches are shown explicitly. Equally relevant hits
+  prefer the current folder. Project names stay visible while searching;
+  clearing the query returns to the selected folder.
 - **bb's own thread menu.** Right-click a chat for the same menu as bb's
   rows and thread header: split, copy link, read, pin, rename, archive,
   delete, per-thread notifications, and whatever other plugins add, plus the

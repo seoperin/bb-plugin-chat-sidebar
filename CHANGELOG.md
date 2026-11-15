@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.11
+
+- Search every active chat regardless of the selected folder, rank by match
+  quality, and prefer the current folder only for equally relevant hits.
+  Show project names in search results and keep archives in their own trailing
+  group. Clearing the query returns to the selected folder.
+
 ## 0.2.10
 
 - Prioritize title matches over pinned chats and message-only matches. Match

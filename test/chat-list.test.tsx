@@ -139,6 +139,53 @@ describe("chat list", () => {
     expect(await screen.findByText("Nothing matches “zzz”")).toBeTruthy();
   });
 
+  it("searches outside the selected project, shows the project, and restores the folder on clear", async () => {
+    const { view } = await render({ language: "English" });
+    const rowIds = () => [...view.container.querySelectorAll("li[data-chat-row]")].map((el) => el.getAttribute("data-chat-row"));
+    fireEvent.click(screen.getByRole("button", { name: /^Alpha/ }));
+    expect(rowIds()).toEqual(["thr_wait"]);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "idea" } });
+    expect(rowIds()).toEqual(["thr_calm"]);
+    expect(view.container.querySelector('li[data-chat-row="thr_calm"]')?.textContent).toContain("Beta");
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "" } });
+    expect(rowIds()).toEqual(["thr_wait"]);
+  });
+
+  it("uses the current folder only to break relevance ties", async () => {
+    const { view } = await render({ language: "English" }, undefined, {
+      threads: [
+        thread("outside_exact", { title: "Widget", projectId: "proj_b", updatedAt: NOW }),
+        thread("inside_prefix", { title: "Widget notes", updatedAt: NOW - 1_000 }),
+        thread("inside_exact", { title: "Widget", updatedAt: NOW - 10_000 }),
+      ],
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Alpha/ }));
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Widget" } });
+    expect([...view.container.querySelectorAll("li[data-chat-row]")].map((el) => el.getAttribute("data-chat-row"))).toEqual([
+      "inside_exact", "outside_exact", "inside_prefix",
+    ]);
+  });
+
+  it("finds message matches from other folders", async () => {
+    const { view } = await render({ language: "English" }, undefined, {
+      search: async () => ({ active: { total: 1, results: [{ thread: { id: "thr_calm" }, matches: [{ sourceKind: "user_message", text: "remote phrase", highlightRanges: [], sourceSeq: 1 }] }] }, archived: { total: 0, results: [] } }),
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Alpha/ }));
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "remote phrase" } });
+    await screen.findByText("remote phrase");
+    expect(view.container.querySelector('li[data-chat-row="thr_calm"]')?.textContent).toContain("Beta");
+  });
+
+  it("searches active chats from the archive folder and returns to the archive on clear", async () => {
+    const { view } = await render({ language: "English" });
+    fireEvent.click(screen.getByRole("button", { name: /^Archive/ }));
+    expect(view.container.querySelectorAll("li[data-chat-row]")).toHaveLength(0);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "deploy" } });
+    expect(view.container.querySelector('li[data-chat-row="thr_wait"]')).toBeTruthy();
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "" } });
+    expect(view.container.querySelectorAll("li[data-chat-row]")).toHaveLength(0);
+  });
+
   it("finds a chat by its messages and shows the match", async () => {
     const { view } = await render({ language: "English" });
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "deploy logs" } });
