@@ -377,11 +377,12 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
     <MutedRefreshProvider value={refreshMuted}>
       <ProjectColorsProvider projects={projectsInUse}>
         <FolderImagesProvider>
+        <div className="flex min-h-full shrink-0 flex-col">
         <div
           className={cn(
             // bb's scroll area is a flex column: without shrink-0 the list is
             // squeezed to one screen and the sticky search scrolls away with it.
-            "chat-sidebar flex min-h-full shrink-0",
+            "chat-sidebar flex flex-1 shrink-0",
             draggingPin && "select-none",
           )}
           style={{ "--chat-top": `${topHeight}px` } as CSSProperties}
@@ -488,6 +489,10 @@ function ChatListView({ activeThreadId, isCompactViewport, onNavigate }: PluginT
 
             <BackToTop visible={scrollArea.farFromTop && !draggingPin} onClick={scrollArea.scrollToTop} />
           </div>
+        </div>
+        <div aria-hidden="true" className="pointer-events-none sticky bottom-0 z-10 h-0 shrink-0">
+          <div className="absolute inset-x-0 bottom-0 h-px bg-sidebar-border" />
+        </div>
         </div>
         <FolderEditor rows={chats} projects={projectsInUse} sections={sections} now={now} />
         </FolderImagesProvider>

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.12
+
+- Add a thin separator at the bottom of the chat list. Keep it with the list
+  in one layout container so the sidebar gap does not add unnecessary scrolling.
+
 ## 0.2.11
 
 - Search every active chat regardless of the selected folder, rank by match
